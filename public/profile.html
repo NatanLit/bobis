@@ -6,6 +6,7 @@
   <title>Профиль</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -508,34 +509,17 @@
       window.history.back();
     }
 
-    // ── Data (demo) ──────────────────────────────────────────
+    // ── Supabase ─────────────────────────────────────────────
+    const SUPABASE_URL = 'https://jtzmekaeyggbyodgtybl.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_3yYqqFy6FM7dOCn3OXc_mA_9i0dKA42';
+
+    // ── Data ─────────────────────────────────────────────────
     const params = new URLSearchParams(location.search);
-    const points = parseInt(params.get('points') || localStorage.getItem('user_points') || '0');
-    if (points) localStorage.setItem('user_points', points);
+    let points = parseInt(params.get('points') || '0');
 
-    const history = JSON.parse(localStorage.getItem('bonus_history') || '[]');
-    // Add points from URL if present
-    if (params.get('points') && parseInt(params.get('points')) > 0) {
-      const newEntry = {
-        type: 'plus',
-        label: 'За отзыв в ресторане',
-        amount: parseInt(params.get('points')),
-        date: new Date().toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
-      };
-      if (!history.find(h => h.label === newEntry.label && h.date === newEntry.date)) {
-        history.unshift(newEntry);
-        localStorage.setItem('bonus_history', JSON.stringify(history));
-      }
-    }
-
-    // Demo purchases
-    const purchases = JSON.parse(localStorage.getItem('purchases') || JSON.stringify([
-      {
-        date: '9 мая 2026', shop: 'Магазин #42',
-        items: [{ name:'Борщ', price:'620 ₽' }, { name:'Стейк', price:'1 290 ₽' }, { name:'Кофе латте', price:'320 ₽' }],
-        pts: 80,
-      }
-    ]));
+    let history  = [];
+    let purchases = [];
+    let userName = localStorage.getItem('user_name') || '';
 
     // Demo spend menu
     const spendMenu = [
@@ -637,7 +621,78 @@
       });
     }
 
-    renderAll();
+    // ── Load real data from Supabase ─────────────────────────
+    async function init() {
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      // Auth check
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { location.href = '/login.html?next=/profile.html'; return; }
+
+      const userId = session.user.id;
+
+      // Load profile
+      const { data: profile } = await sb.from('profiles')
+        .select('first_name, last_name, phone, total_points')
+        .eq('id', userId).single();
+
+      if (profile) {
+        userName = `${profile.first_name} ${profile.last_name}`;
+        points   = profile.total_points || 0;
+        localStorage.setItem('user_name', userName);
+        localStorage.setItem('user_points', points);
+      }
+
+      // Load points history
+      const { data: logs } = await sb.from('points_log')
+        .select('amount, created_at, reviews(text, items(name))')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (logs) {
+        history = logs.map(l => ({
+          type:   'plus',
+          label:  l.reviews?.items?.name ? `Отзыв: ${l.reviews.items.name}` : 'За отзыв',
+          amount: l.amount,
+          date:   new Date(l.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
+        }));
+      }
+
+      // Load purchases (reviews grouped by date)
+      const { data: reviews } = await sb.from('reviews')
+        .select('created_at, points_earned, items(name)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (reviews?.length) {
+        const grouped = {};
+        reviews.forEach(r => {
+          const date = new Date(r.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+          if (!grouped[date]) grouped[date] = { date, items: [], pts: 0 };
+          grouped[date].items.push({ name: r.items?.name || 'Товар', price: '' });
+          grouped[date].pts += r.points_earned || 0;
+        });
+        purchases = Object.values(grouped);
+      }
+
+      renderAll();
+
+      // Show user name in header if element exists
+      const nameEl = document.getElementById('user-name-lbl');
+      if (nameEl && userName) nameEl.textContent = userName;
+
+      // Logout handler
+      window.logout = async () => {
+        await sb.auth.signOut();
+        localStorage.removeItem('user_name');
+        localStorage.removeItem('user_points');
+        location.href = '/login.html';
+      };
+    }
+
+    init();
   </script>
 </body>
 </html>

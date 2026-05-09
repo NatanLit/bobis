@@ -6,6 +6,7 @@
   <title>Оставить отзыв</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     *, *::before, *::after {
       box-sizing: border-box; margin: 0; padding: 0;
@@ -465,12 +466,18 @@
     window.addEventListener('pageshow', () => applyTheme(localStorage.getItem('theme') || 'dark'));
     window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(e.newValue || 'dark'); });
 
-    // ── Auth: redirect to login if no phone ──────────────────
-    const userPhone = localStorage.getItem('user_phone');
-    if (!userPhone) {
-      const next = encodeURIComponent(location.pathname + location.search);
-      location.href = '/login.html?next=' + next;
-    }
+    // ── Auth: redirect to login if no session ────────────────
+    (async () => {
+      const sb = supabase.createClient(
+        'https://jtzmekaeyggbyodgtybl.supabase.co',
+        'sb_publishable_3yYqqFy6FM7dOCn3OXc_mA_9i0dKA42'
+      );
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        const next = encodeURIComponent(location.pathname + location.search);
+        location.href = '/login.html?next=' + next;
+      }
+    })();
 
     // ── Profile button: show points count inside ─────────────
     const savedPts = parseInt(localStorage.getItem('user_points') || '0');
