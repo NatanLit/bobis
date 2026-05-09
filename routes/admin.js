@@ -14,6 +14,14 @@ function checkAdminKey(req, res, next) {
   next();
 }
 
+router.post('/login', (req, res) => {
+  const { password } = req.body;
+  if (!process.env.ADMIN_KEY || password !== process.env.ADMIN_KEY) {
+    return res.status(401).json({ success: false, error: 'Неверный пароль' });
+  }
+  return res.json({ success: true });
+});
+
 router.get('/reviews', checkAdminKey, async (req, res) => {
   try {
     const { limit = 50, offset = 0 } = req.query;

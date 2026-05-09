@@ -465,6 +465,13 @@
     window.addEventListener('pageshow', () => applyTheme(localStorage.getItem('theme') || 'dark'));
     window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(e.newValue || 'dark'); });
 
+    // ── Auth: redirect to login if no phone ──────────────────
+    const userPhone = localStorage.getItem('user_phone');
+    if (!userPhone) {
+      const next = encodeURIComponent(location.pathname + location.search);
+      location.href = '/login.html?next=' + next;
+    }
+
     // ── Profile button: show points count inside ─────────────
     const savedPts = parseInt(localStorage.getItem('user_points') || '0');
     if (savedPts > 0) {
@@ -635,6 +642,7 @@
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             shop,
+            phone: localStorage.getItem('user_phone'),
             reviews: Object.values(state).map(s => ({ item:s.name, stars:s.stars, text:s.text, hasPhoto:!!s.photo })),
           }),
         });
