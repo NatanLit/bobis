@@ -119,23 +119,30 @@
 
     .header-right { display: flex; align-items: center; gap: 10px; }
 
-    /* Profile link — icon + points below */
+    /* Profile button — shows points number inside */
     .profile-link {
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      display: flex; align-items: center; justify-content: center;
       text-decoration: none; cursor: pointer; flex-shrink: 0;
       transition: transform .15s ease;
     }
     .profile-link:active { transform: scale(.88); }
     .profile-btn {
-      width: 42px; height: 42px; border-radius: 13px; border: none;
-      background: var(--accent); display: flex; align-items: center; justify-content: center;
-      filter: none; transition: filter .15s ease;
+      width: 48px; height: 48px; border-radius: 14px; border: none;
+      background: var(--accent);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1px; filter: none; transition: filter .15s ease;
     }
-    .profile-link:active .profile-btn { filter: brightness(.9); }
-    .profile-btn svg { width: 20px; height: 20px; color: #fff; }
-    .profile-pts {
-      font-size: 10px; font-weight: 800; color: var(--accent);
-      letter-spacing: -.01em; line-height: 1;
+    .profile-link:active .profile-btn { filter: brightness(.88); }
+    /* Icon shown when no points */
+    .profile-btn-ico { width: 20px; height: 20px; color: #fff; }
+    /* Number shown when has points */
+    .profile-btn-num {
+      font-size: 17px; font-weight: 900; color: #fff;
+      letter-spacing: -.03em; line-height: 1;
+    }
+    .profile-btn-sub {
+      font-size: 8px; font-weight: 700; color: rgba(255,255,255,.75);
+      letter-spacing: .04em; text-transform: uppercase; line-height: 1;
     }
 
     .counter-pill {
@@ -380,13 +387,12 @@
         <div class="counter-pill">
           <span id="done-c">0</span> / <span id="total-c">0</span>
         </div>
-        <a href="profile.html" class="profile-link" aria-label="Профиль">
-          <div class="profile-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <a href="profile.html" class="profile-link" aria-label="Профиль" id="profile-link">
+          <div class="profile-btn" id="profile-btn">
+            <svg class="profile-btn-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
           </div>
-          <div class="profile-pts" id="hdr-pts"></div>
         </a>
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Сменить тему">
           <svg id="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -457,10 +463,15 @@
       localStorage.setItem('theme', next);
     }
 
-    // ── Bonus in header ──────────────────────────────────────
+    // ── Profile button: show points count inside ─────────────
     const savedPts = parseInt(localStorage.getItem('user_points') || '0');
-    const hdrPts   = document.getElementById('hdr-pts');
-    if (savedPts > 0) hdrPts.textContent = savedPts + ' pts';
+    if (savedPts > 0) {
+      const btn = document.getElementById('profile-btn');
+      btn.innerHTML = `
+        <div class="profile-btn-num">${savedPts > 999 ? '999+' : savedPts}</div>
+        <div class="profile-btn-sub">pts</div>
+      `;
+    }
 
     // ── Data ─────────────────────────────────────────────────
     const p     = new URLSearchParams(location.search);

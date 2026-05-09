@@ -31,6 +31,7 @@
       --hdr:      rgba(250,248,245,.88);
     }
 
+    html { overflow-x: hidden; }
     html, body { height: 100%; }
     body {
       font-family: 'Outfit', system-ui, sans-serif;
@@ -43,12 +44,16 @@
     /* ── Views ─────────────────────────────────────────────── */
     .view {
       position: fixed; inset: 0; z-index: 10;
-      background: var(--bg); overflow-y: auto;
-      transition: transform .35s cubic-bezier(.22,1,.36,1), opacity .3s ease;
+      background: var(--bg); overflow-y: auto; overflow-x: hidden;
       display: flex; flex-direction: column;
     }
-    .view.hidden     { transform: translateX(100%); opacity: 0; pointer-events: none; }
-    .view.slide-back { transform: translateX(-30%); opacity: 0; pointer-events: none; }
+    .view.hidden { display: none; }
+
+    @keyframes viewIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .view-enter { animation: viewIn .3s cubic-bezier(.22,1,.36,1) both; }
 
     /* ── Shared header ─────────────────────────────────────── */
     .hdr {
@@ -484,8 +489,12 @@
 
     // ── Navigation ───────────────────────────────────────────
     function openView(id) {
-      document.getElementById(id).classList.remove('hidden');
-      requestAnimationFrame(() => document.getElementById(id).scrollTop = 0);
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      el.classList.remove('view-enter');
+      void el.offsetWidth; // reflow to restart animation
+      el.classList.add('view-enter');
+      el.scrollTop = 0;
     }
     function closeView(id) {
       document.getElementById(id).classList.add('hidden');
