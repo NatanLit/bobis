@@ -11,7 +11,8 @@ function getSupabase() {
 
 router.post('/', async (req, res) => {
   try {
-    const { shop, reviews, phone } = req.body;
+    const { shop, reviews, phone, email } = req.body;
+    const identifier = email || phone; // prefer email from Supabase Auth
 
     if (!Array.isArray(reviews) || reviews.length === 0) {
       return res.status(400).json({ success: false, error: 'Нет данных для отзыва' });
@@ -29,10 +30,10 @@ router.post('/', async (req, res) => {
     const supabase = getSupabase();
     let userId = null;
 
-    if (phone && supabase) {
+    if (identifier && supabase) {
       const { data: user } = await supabase
         .from('users')
-        .upsert({ phone_or_email: phone }, { onConflict: 'phone_or_email' })
+        .upsert({ phone_or_email: identifier }, { onConflict: 'phone_or_email' })
         .select('id')
         .single();
       userId = user?.id;

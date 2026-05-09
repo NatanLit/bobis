@@ -621,7 +621,7 @@
       });
     }
 
-    // ── Load real data from Supabase ─────────────────────────
+    // ── Load real data via backend ───────────────────────────
     async function init() {
       const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -629,65 +629,51 @@
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { location.href = '/login.html?next=/profile.html'; return; }
 
-      const userId = session.user.id;
+      const token = session.access_token;
 
-      // Load profile
+      // Load user name from profiles table
       const { data: profile } = await sb.from('profiles')
-        .select('first_name, last_name, phone, total_points')
-        .eq('id', userId).single();
-
+        .select('first_name, last_name')
+        .eq('id', session.user.id).single();
       if (profile) {
-        userName = `${profile.first_name} ${profile.last_name}`;
-        points   = profile.total_points || 0;
+        userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
         localStorage.setItem('user_name', userName);
-        localStorage.setItem('user_points', points);
       }
 
-      // Load points history
-      const { data: logs } = await sb.from('points_log')
-        .select('amount, created_at, reviews(text, items(name))')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(30);
+      // Load points + history + reviews from backend (uses service key, bypasses RLS)
+      try {
+        const res  = await fetch('/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
+        const json = await res.json();
 
-      if (logs) {
-        history = logs.map(l => ({
-          type:   'plus',
-          label:  l.reviews?.items?.name ? `Отзыв: ${l.reviews.items.name}` : 'За отзыв',
-          amount: l.amount,
-          date:   new Date(l.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
-        }));
-      }
+        if (json.success) {
+          points = json.data.points || 0;
 
-      // Load purchases (reviews grouped by date)
-      const { data: reviews } = await sb.from('reviews')
-        .select('created_at, points_earned, items(name)')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(20);
+          history = (json.data.history || []).map(h => ({
+            type:   'plus',
+            label:  h.item ? `Отзыв: ${h.item}` : 'За отзыв',
+            amount: h.amount,
+            date:   new Date(h.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
+          }));
 
-      if (reviews?.length) {
-        const grouped = {};
-        reviews.forEach(r => {
-          const date = new Date(r.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
-          if (!grouped[date]) grouped[date] = { date, items: [], pts: 0 };
-          grouped[date].items.push({ name: r.items?.name || 'Товар', price: '' });
-          grouped[date].pts += r.points_earned || 0;
-        });
-        purchases = Object.values(grouped);
+          const grouped = {};
+          (json.data.reviews || []).forEach(r => {
+            const date = new Date(r.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+            if (!grouped[date]) grouped[date] = { date, shop: 'Визит', items: [], pts: 0 };
+            grouped[date].items.push({ name: r.item, price: '★'.repeat(r.stars) });
+            grouped[date].pts += r.points_earned || 0;
+          });
+          purchases = Object.values(grouped);
+        }
+      } catch (e) {
+        console.warn('Failed to load user data:', e);
       }
 
       renderAll();
-
-      // Show user name in header if element exists
-      const nameEl = document.getElementById('user-name-lbl');
-      if (nameEl && userName) nameEl.textContent = userName;
 
       // Logout handler
       window.logout = async () => {
         await sb.auth.signOut();
         localStorage.removeItem('user_name');
-        localStorage.removeItem('user_points');
         location.href = '/login.html';
       };
     }

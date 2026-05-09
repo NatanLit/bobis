@@ -471,6 +471,8 @@
       'https://jtzmekaeyggbyodgtybl.supabase.co',
       'sb_publishable_3yYqqFy6FM7dOCn3OXc_mA_9i0dKA42'
     );
+    let _userEmail = null;
+    let _authToken = null;
     (async () => {
       const { data: { session } } = await _sb.auth.getSession();
       if (!session) {
@@ -478,19 +480,22 @@
         location.href = '/login.html?next=' + next;
         return;
       }
-      // Load this user's points from their profile
-      const { data: profile } = await _sb.from('profiles')
-        .select('total_points')
-        .eq('id', session.user.id)
-        .single();
-      const pts = profile?.total_points || 0;
-      if (pts > 0) {
-        const btn = document.getElementById('profile-btn');
-        btn.innerHTML = `
-          <div class="profile-btn-num">${pts > 999 ? '999+' : pts}</div>
-          <div class="profile-btn-sub">pts</div>
-        `;
-      }
+      _userEmail = session.user.email;
+      _authToken = session.access_token;
+
+      // Load user's points via backend (uses users table, bypasses RLS)
+      try {
+        const res = await fetch('/user/me', { headers: { 'Authorization': 'Bearer ' + _authToken } });
+        const json = await res.json();
+        const pts = json.data?.points || 0;
+        if (pts > 0) {
+          const btn = document.getElementById('profile-btn');
+          btn.innerHTML = `
+            <div class="profile-btn-num">${pts > 999 ? '999+' : pts}</div>
+            <div class="profile-btn-sub">pts</div>
+          `;
+        }
+      } catch (e) { /* non-critical */ }
     })();
 
     // ── Data ─────────────────────────────────────────────────
@@ -653,7 +658,7 @@
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({
             shop,
-            phone: localStorage.getItem('user_phone'),
+            email: _userEmail,
             reviews: Object.values(state).map(s => ({ item:s.name, stars:s.stars, text:s.text, hasPhoto:!!s.photo })),
           }),
         });
