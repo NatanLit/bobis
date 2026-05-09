@@ -77,9 +77,10 @@ function switchSection(sectionId) {
   if (navLink) navLink.classList.add('active');
 
   const titles = {
-    dashboard: { t: 'Дашборд',  s: 'Обзор отзывов и рейтингов' },
-    reviews:   { t: 'Отзывы',   s: 'Управление откликами клиентов' },
-    products:  { t: 'Товары',   s: 'Рейтинг позиций меню' },
+    dashboard: { t: 'Дашборд',   s: 'Обзор отзывов и рейтингов' },
+    reviews:   { t: 'Отзывы',    s: 'Управление откликами клиентов' },
+    products:  { t: 'Товары',    s: 'Рейтинг позиций меню' },
+    qr:        { t: 'QR-коды',   s: 'Генератор ссылок для кассиров' },
   };
   const info = titles[sectionId];
   if (info) {
@@ -89,6 +90,11 @@ function switchSection(sectionId) {
 
   if (sectionId === 'products' && document.getElementById('products-grid').innerHTML === '') {
     renderProductsGrid();
+  }
+  if (sectionId === 'qr' && !qrInited) {
+    qrInited = true;
+    qrAddItem();
+    qrAddItem();
   }
 }
 
@@ -292,6 +298,81 @@ function filterReviewsByProduct(productName) {
   const filtered = liveReviews.filter(r => r.product === productName);
   renderReviewsList(filtered, 'reviews-full-list', false);
 }
+
+// ── QR Generator ─────────────────────────────────────────
+let qrItems = [];
+let qrCurrentUrl = '';
+
+function qrAddItem(val = '') {
+  const id = Date.now() + Math.random();
+  qrItems.push({ id, val });
+  qrRenderItems();
+  const inputs = document.querySelectorAll('.qr-item-input');
+  inputs[inputs.length - 1]?.focus();
+}
+
+function qrRemoveItem(id) {
+  qrItems = qrItems.filter(i => i.id !== id);
+  qrRenderItems();
+}
+
+function qrSyncItem(id, val) {
+  const item = qrItems.find(i => i.id === id);
+  if (item) item.val = val;
+}
+
+function qrRenderItems() {
+  const list = document.getElementById('qr-items-list');
+  if (!list) return;
+  list.innerHTML = qrItems.map((item, idx) => `
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+           style="background:var(--accent-light);color:var(--accent)">${idx + 1}</div>
+      <input class="qr-item-input flex-1 h-10 rounded-xl px-3 text-sm font-medium outline-none"
+        style="background:var(--input-bg);border:1px solid var(--border);color:var(--text);font-family:inherit"
+        type="text" placeholder="Название товара"
+        value="${item.val.replace(/"/g,'&quot;')}"
+        oninput="qrSyncItem(${item.id}, this.value)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();qrAddItem()}">
+      ${qrItems.length > 1 ? `<button onclick="qrRemoveItem(${item.id})"
+        class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
+        style="background:transparent;border:none;cursor:pointer;color:var(--text-tertiary)"
+        onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-tertiary)'">✕</button>` : '<div class="w-7"></div>'}
+    </div>
+  `).join('');
+}
+
+function qrGenerate() {
+  const shop  = (document.getElementById('qr-shop')?.value || '').trim();
+  const names = qrItems.map(i => i.val.trim()).filter(Boolean);
+  if (!names.length) { showToast('Добавьте хотя бы один товар', 'error'); return; }
+
+  const base   = location.origin;
+  const params = new URLSearchParams();
+  if (shop) params.set('shop', shop);
+  params.set('items', names.join(','));
+  qrCurrentUrl = `${base}/?${params.toString()}`;
+
+  const wrap = document.getElementById('qr-canvas-wrap');
+  wrap.innerHTML = '';
+  new QRCode(wrap, {
+    text: qrCurrentUrl,
+    width: 200, height: 200,
+    colorDark: '#000000', colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+
+  document.getElementById('qr-url-text').textContent = qrCurrentUrl;
+  document.getElementById('qr-placeholder').classList.add('hidden');
+  document.getElementById('qr-output').classList.remove('hidden');
+  document.getElementById('qr-output').classList.add('flex');
+}
+
+function qrCopy() {
+  navigator.clipboard.writeText(qrCurrentUrl).then(() => showToast('Ссылка скопирована!', 'success'));
+}
+
+let qrInited = false;
 
 // ── Init ──────────────────────────────────────────────────
 fetchReviews().then(() => {

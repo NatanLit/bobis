@@ -44,6 +44,10 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
         Товары
       </a>
+      <a class="sidebar-link" id="nav-qr" onclick="switchSection('qr')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 17h2m4 0v4m-4 0h4m0-4v-2m-6-2h2m0-2h2m2 0v2"/></svg>
+        QR-коды
+      </a>
     </nav>
 
     <div class="px-4 pb-6">
@@ -128,12 +132,81 @@
       <div id="section-products" class="section-content px-8 py-6" style="display:none">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="products-grid"></div>
       </div>
+
+      <!-- QR SECTION -->
+      <div id="section-qr" class="section-content px-8 py-6" style="display:none">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Form card -->
+          <div class="dash-card p-6 animate-fade-up">
+            <h3 class="text-sm font-bold uppercase tracking-wider mb-5" style="color:var(--text-tertiary)">Параметры заказа</h3>
+
+            <div class="mb-4">
+              <label class="block text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--text-tertiary)">ID магазина / точки</label>
+              <input id="qr-shop" type="text" placeholder="например: shop1"
+                class="w-full h-11 rounded-xl px-4 text-sm font-medium outline-none transition-all"
+                style="background:var(--input-bg);border:1px solid var(--border);color:var(--text);font-family:inherit">
+            </div>
+
+            <div class="mb-3">
+              <label class="block text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--text-tertiary)">Товары в заказе</label>
+              <div id="qr-items-list" class="space-y-2 mb-2"></div>
+              <button onclick="qrAddItem()"
+                class="w-full h-10 rounded-xl text-sm font-semibold transition-all"
+                style="border:1.5px dashed var(--border);background:transparent;color:var(--text-tertiary);font-family:inherit;cursor:pointer"
+                onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-tertiary)'">
+                + Добавить товар
+              </button>
+            </div>
+
+            <button onclick="qrGenerate()"
+              class="w-full h-11 rounded-xl text-sm font-bold mt-4 transition-all"
+              style="background:var(--accent);color:#fff;border:none;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(255,107,53,.3)"
+              onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+              Сгенерировать QR-код
+            </button>
+          </div>
+
+          <!-- QR Result card -->
+          <div class="dash-card p-6 animate-fade-up flex flex-col items-center justify-center" id="qr-result-card">
+            <div id="qr-placeholder" class="text-center">
+              <div class="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background:var(--bg)">
+                <svg class="w-9 h-9" style="color:var(--text-tertiary)" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 17h2m4 0v4m-4 0h4m0-4v-2m-6-2h2m0-2h2m2 0v2"/>
+                </svg>
+              </div>
+              <p class="text-sm font-semibold" style="color:var(--text-tertiary)">QR-код появится здесь</p>
+              <p class="text-xs mt-1" style="color:var(--text-tertiary);opacity:.6">Заполните форму и нажмите кнопку</p>
+            </div>
+            <div id="qr-output" class="hidden flex-col items-center gap-4 w-full">
+              <div id="qr-canvas-wrap" class="rounded-2xl p-4" style="background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.15)"></div>
+              <div class="w-full space-y-1">
+                <div class="text-xs font-bold uppercase tracking-wider mb-1" style="color:var(--text-tertiary)">Ссылка</div>
+                <div id="qr-url-text" class="text-xs rounded-xl px-3 py-2 break-all leading-relaxed" style="background:var(--bg);color:var(--text-tertiary);border:1px solid var(--border)"></div>
+              </div>
+              <div class="flex gap-2 w-full">
+                <button onclick="qrCopy()" class="flex-1 h-9 rounded-xl text-xs font-bold transition-all"
+                  style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:inherit;cursor:pointer">
+                  Копировать
+                </button>
+                <button onclick="window.print()" class="flex-1 h-9 rounded-xl text-xs font-bold transition-all"
+                  style="background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:inherit;cursor:pointer">
+                  Печать
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
     if (sessionStorage.getItem('admin_auth') !== '1') location.href = '/admin-login.html';
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

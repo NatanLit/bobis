@@ -466,28 +466,32 @@
     window.addEventListener('pageshow', () => applyTheme(localStorage.getItem('theme') || 'dark'));
     window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(e.newValue || 'dark'); });
 
-    // ── Auth: redirect to login if no session ────────────────
+    // ── Auth: redirect to login if no session, then load user points ──
+    const _sb = supabase.createClient(
+      'https://jtzmekaeyggbyodgtybl.supabase.co',
+      'sb_publishable_3yYqqFy6FM7dOCn3OXc_mA_9i0dKA42'
+    );
     (async () => {
-      const sb = supabase.createClient(
-        'https://jtzmekaeyggbyodgtybl.supabase.co',
-        'sb_publishable_3yYqqFy6FM7dOCn3OXc_mA_9i0dKA42'
-      );
-      const { data: { session } } = await sb.auth.getSession();
+      const { data: { session } } = await _sb.auth.getSession();
       if (!session) {
         const next = encodeURIComponent(location.pathname + location.search);
         location.href = '/login.html?next=' + next;
+        return;
+      }
+      // Load this user's points from their profile
+      const { data: profile } = await _sb.from('profiles')
+        .select('total_points')
+        .eq('id', session.user.id)
+        .single();
+      const pts = profile?.total_points || 0;
+      if (pts > 0) {
+        const btn = document.getElementById('profile-btn');
+        btn.innerHTML = `
+          <div class="profile-btn-num">${pts > 999 ? '999+' : pts}</div>
+          <div class="profile-btn-sub">pts</div>
+        `;
       }
     })();
-
-    // ── Profile button: show points count inside ─────────────
-    const savedPts = parseInt(localStorage.getItem('user_points') || '0');
-    if (savedPts > 0) {
-      const btn = document.getElementById('profile-btn');
-      btn.innerHTML = `
-        <div class="profile-btn-num">${savedPts > 999 ? '999+' : savedPts}</div>
-        <div class="profile-btn-sub">pts</div>
-      `;
-    }
 
     // ── Data ─────────────────────────────────────────────────
     const p     = new URLSearchParams(location.search);

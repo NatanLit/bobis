@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+  <title>Генератор QR — Bobis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --accent: #FF6B35; --accent-d: #E85A26;
+      --accent-10: rgba(255,107,53,.1); --accent-20: rgba(255,107,53,.2);
+      --success: #22C55E; --danger: #EF4444;
+      --r: 22px; --r-btn: 18px; --r-input: 14px;
+    }
+    [data-theme="dark"] {
+      --bg: #141210; --card: #1E1B17; --card-b: #2A2520;
+      --text1: #F5F0EB; --text2: #7A7068; --text3: #3D3830;
+      --input-bg: #252118; --input-b: #332E25;
+    }
+    [data-theme="light"] {
+      --bg: #FAF8F5; --card: #FFFFFF; --card-b: #EAE6DF;
+      --text1: #1A1612; --text2: #7A7068; --text3: #C0B8AE;
+      --input-bg: #F7F4EF; --input-b: #E4DDD5;
+    }
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg); color: var(--text1);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      transition: background .25s, color .25s;
+    }
+
+    /* Header */
+    .header {
+      position: sticky; top: 0; z-index: 10;
+      background: var(--bg); border-bottom: 1px solid var(--card-b);
+      padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      backdrop-filter: blur(12px);
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo svg { width: 20px; height: 20px; color: #fff; }
+    .header-title { font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
+    .header-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .theme-btn {
+      width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--card-b);
+      background: var(--card); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .theme-btn svg { width: 18px; height: 18px; color: var(--text2); }
+
+    /* Main layout */
+    .main {
+      max-width: 680px; margin: 0 auto;
+      padding: 24px 16px 40px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r); padding: 22px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--text2); margin-bottom: 16px;
+    }
+
+    /* Fields */
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field-lbl { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); margin-bottom: 7px; }
+    .input {
+      width: 100%; height: 50px;
+      background: var(--input-bg); border: 1px solid var(--input-b);
+      border-radius: var(--r-input); padding: 0 14px;
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 16px; font-weight: 500; color: var(--text1);
+      outline: none; -webkit-appearance: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-10); }
+    .input::placeholder { color: var(--text3); font-size: 14px; }
+
+    /* Items list */
+    .items-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .item-row {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .item-row .input { flex: 1; }
+    .item-num {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--accent-10); color: var(--accent);
+      font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .del-btn {
+      width: 36px; height: 36px; border-radius: 10px; border: none;
+      background: transparent; color: var(--text3);
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, color .15s;
+    }
+    .del-btn:hover { background: rgba(239,68,68,.1); color: var(--danger); }
+    .del-btn svg { width: 16px; height: 16px; }
+
+    .add-btn {
+      width: 100%; height: 44px; border: 1.5px dashed var(--input-b); border-radius: var(--r-input);
+      background: transparent; color: var(--text2);
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-10); }
+    .add-btn svg { width: 16px; height: 16px; }
+
+    /* Generate button */
+    .gen-btn {
+      width: 100%; height: 54px; border: none; border-radius: var(--r-btn);
+      background: var(--accent); color: #fff;
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 16px; font-weight: 700; letter-spacing: -.01em;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(255,107,53,.3);
+      transition: transform .15s, background .15s;
+    }
+    .gen-btn:active { transform: scale(.97); background: var(--accent-d); }
+    .gen-btn svg { width: 20px; height: 20px; }
+
+    /* QR Result */
+    .qr-card { display: none; }
+    .qr-card.show { display: block; }
+
+    .qr-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+      padding: 8px 0 4px;
+    }
+    .qr-box {
+      background: #fff; padding: 16px; border-radius: 18px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.2);
+      display: inline-block;
+    }
+    .qr-box canvas, .qr-box img { display: block; border-radius: 4px; }
+
+    .qr-info { width: 100%; }
+    .qr-info-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--card-b);
+    }
+    .qr-info-row:last-child { border-bottom: none; }
+    .qr-info-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); }
+    .qr-info-val { font-size: 13px; font-weight: 600; color: var(--text1); text-align: right; max-width: 200px; word-break: break-all; }
+
+    .qr-url-box {
+      background: var(--input-bg); border: 1px solid var(--input-b);
+      border-radius: var(--r-input); padding: 12px 14px;
+      font-size: 12px; font-weight: 500; color: var(--text2);
+      word-break: break-all; line-height: 1.5;
+    }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    .action-btn {
+      flex: 1; height: 48px; border-radius: 14px; border: 1px solid var(--card-b);
+      background: var(--card); color: var(--text1);
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      cursor: pointer; transition: background .15s, border-color .15s;
+    }
+    .action-btn:hover { background: var(--input-bg); border-color: var(--accent); }
+    .action-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .action-btn.primary:hover { background: var(--accent-d); }
+    .action-btn svg { width: 16px; height: 16px; }
+
+    .copied-toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+      background: var(--success); color: #fff;
+      font-size: 14px; font-weight: 700;
+      padding: 10px 20px; border-radius: 50px;
+      opacity: 0; transition: opacity .2s;
+      pointer-events: none; white-space: nowrap; z-index: 100;
+    }
+    .copied-toast.show { opacity: 1; }
+
+    /* Print styles */
+    @media print {
+      .header, .form-section, .actions { display: none !important; }
+      .qr-card { display: block !important; }
+      .card { border: none; padding: 0; }
+      .qr-wrap { gap: 12px; }
+      body { background: #fff; }
+      .qr-url-box { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="header-title">QR-генератор</div>
+        <div class="header-sub">Bobis — панель кассира</div>
+      </div>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="main">
+
+    <!-- Form -->
+    <div class="card form-section">
+      <div class="card-title">Данные заказа</div>
+
+      <div class="field">
+        <div class="field-lbl">ID магазина / точки</div>
+        <input class="input" id="shop-id" type="text" placeholder="например: shop1 или 42" value="">
+      </div>
+
+      <div class="field">
+        <div class="field-lbl">Товары в заказе</div>
+        <div class="items-list" id="items-list"></div>
+        <button class="add-btn" onclick="addItem()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Добавить товар
+        </button>
+      </div>
+    </div>
+
+    <button class="gen-btn" onclick="generate()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <path d="M14 14h3v3m0 4h4m-4 0v-4m4 0h-3"/>
+      </svg>
+      Сгенерировать QR-код
+    </button>
+
+    <!-- QR Result -->
+    <div class="card qr-card" id="qr-result">
+      <div class="card-title">QR-код для клиента</div>
+      <div class="qr-wrap">
+        <div class="qr-box" id="qr-container"></div>
+        <div class="qr-info" id="qr-info"></div>
+      </div>
+      <div class="field-lbl" style="margin-top:12px;margin-bottom:8px">Ссылка</div>
+      <div class="qr-url-box" id="qr-url-display"></div>
+      <div class="actions">
+        <button class="action-btn" onclick="copyUrl()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+          Копировать
+        </button>
+        <button class="action-btn" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          Печать
+        </button>
+        <button class="action-btn primary" onclick="newQR()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M3 12a9 9 0 019-9 9.75 9.75 0 016.74 2.74L21 8"/><path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 01-9 9 9.75 9.75 0 01-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>
+          </svg>
+          Новый
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="copied-toast" id="copied-toast">Ссылка скопирована!</div>
+
+  <script>
+    // Theme
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    function toggleTheme() {
+      const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      localStorage.setItem('theme', t);
+    }
+
+    // Items management
+    let items = [];
+    function addItem(val = '') {
+      const id = Date.now();
+      items.push({ id, val });
+      renderItems();
+      const inputs = document.querySelectorAll('.item-input');
+      inputs[inputs.length - 1]?.focus();
+    }
+    function removeItem(id) {
+      items = items.filter(i => i.id !== id);
+      renderItems();
+    }
+    function renderItems() {
+      const list = document.getElementById('items-list');
+      list.innerHTML = items.map((item, idx) => `
+        <div class="item-row" data-id="${item.id}">
+          <div class="item-num">${idx + 1}</div>
+          <input class="input item-input" type="text" placeholder="Название товара"
+            value="${escHtml(item.val)}"
+            oninput="syncItem(${item.id}, this.value)"
+            onkeydown="itemKeydown(event, ${item.id})">
+          ${items.length > 1 ? `<button class="del-btn" onclick="removeItem(${item.id})" title="Удалить">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>` : '<div style="width:36px"></div>'}
+        </div>
+      `).join('');
+    }
+    function syncItem(id, val) {
+      const item = items.find(i => i.id === id);
+      if (item) item.val = val;
+    }
+    function itemKeydown(e, id) {
+      if (e.key === 'Enter') { e.preventDefault(); addItem(); }
+      if (e.key === 'Backspace' && e.target.value === '' && items.length > 1) {
+        e.preventDefault(); removeItem(id);
+        const inputs = document.querySelectorAll('.item-input');
+        inputs[inputs.length - 1]?.focus();
+      }
+    }
+    function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // Init with 2 items
+    addItem(); addItem();
+
+    // Generate QR
+    let currentUrl = '';
+    function generate() {
+      const shop = document.getElementById('shop-id').value.trim();
+      const names = items.map(i => i.val.trim()).filter(Boolean);
+      if (!names.length) { alert('Добавьте хотя бы один товар'); return; }
+
+      const base = location.origin;
+      const params = new URLSearchParams();
+      if (shop) params.set('shop', shop);
+      params.set('items', names.join(','));
+      currentUrl = `${base}/?${params.toString()}`;
+
+      // Render QR
+      const container = document.getElementById('qr-container');
+      container.innerHTML = '';
+      new QRCode(container, {
+        text: currentUrl,
+        width: 220, height: 220,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      // Info rows
+      document.getElementById('qr-info').innerHTML = `
+        <div class="qr-info-row">
+          <span class="qr-info-lbl">Магазин</span>
+          <span class="qr-info-val">${escHtml(shop || '—')}</span>
+        </div>
+        <div class="qr-info-row">
+          <span class="qr-info-lbl">Товаров</span>
+          <span class="qr-info-val">${names.length}</span>
+        </div>
+        <div class="qr-info-row">
+          <span class="qr-info-lbl">Состав</span>
+          <span class="qr-info-val">${names.map(escHtml).join(', ')}</span>
+        </div>
+      `;
+      document.getElementById('qr-url-display').textContent = currentUrl;
+
+      document.getElementById('qr-result').classList.add('show');
+      document.getElementById('qr-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function copyUrl() {
+      navigator.clipboard.writeText(currentUrl).then(() => {
+        const t = document.getElementById('copied-toast');
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+      });
+    }
+
+    function newQR() {
+      document.getElementById('qr-result').classList.remove('show');
+      document.getElementById('shop-id').focus();
+    }
+  </script>
+</body>
+</html>
