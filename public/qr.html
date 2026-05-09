@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+  <title>QR — Оставить отзыв</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :root {
+      --accent:    #FF6B35;
+      --accent-d:  #E85A26;
+      --accent-10: rgba(255,107,53,.1);
+      --accent-20: rgba(255,107,53,.2);
+      --r:         22px;
+    }
+
+    [data-theme="dark"] {
+      --bg:        #141210;
+      --bg2:       #1C1A17;
+      --card:      #1E1B17;
+      --card-b:    #2A2520;
+      --text1:     #F5F0EB;
+      --text2:     #7A7068;
+      --text3:     #3D3830;
+      --inp:       #252118;
+      --inp-b:     #332E25;
+      --sep:       #252118;
+      --hdr:       rgba(20,18,16,.88);
+    }
+    [data-theme="light"] {
+      --bg:        #FAF8F5;
+      --bg2:       #F2EFE9;
+      --card:      #FFFFFF;
+      --card-b:    #EAE6DF;
+      --text1:     #1A1612;
+      --text2:     #7A7068;
+      --text3:     #C0B8AE;
+      --inp:       #F7F4EF;
+      --inp-b:     #E4DDD5;
+      --sep:       #F0EDE8;
+      --hdr:       rgba(250,248,245,.88);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg); color: var(--text1);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      transition: background .25s ease, color .25s ease;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--hdr);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border-bottom: 1px solid var(--sep);
+      padding-top: env(safe-area-inset-top);
+      transition: background .25s ease, border-color .25s ease;
+    }
+    .header-body {
+      max-width: 480px; margin: 0 auto;
+      padding: 12px 18px 12px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .logo-dot {
+      width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-dot svg { width: 18px; height: 18px; color: #fff; }
+    .header-info { flex: 1; min-width: 0; }
+    .header-shop {
+      font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 1px;
+    }
+    .header-title {
+      font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: var(--text1);
+    }
+    .theme-toggle {
+      width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer;
+      background: var(--inp); border: 1px solid var(--inp-b);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s, transform .15s ease; flex-shrink: 0;
+    }
+    .theme-toggle:active { transform: scale(.88); }
+    .theme-toggle svg { width: 15px; height: 15px; color: var(--text2); }
+
+    /* ── Main layout ────────────────────────────────────── */
+    .main {
+      max-width: 480px; margin: 0 auto;
+      padding: 24px 16px;
+      padding-bottom: max(32px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+
+    /* ── QR Card ────────────────────────────────────────── */
+    .qr-card {
+      width: 100%;
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r);
+      box-shadow: 0 2px 4px rgba(0,0,0,.06), 0 8px 32px rgba(0,0,0,.1);
+      overflow: hidden;
+      animation: slideUp .45s cubic-bezier(.22,1,.36,1) both;
+      transition: background .25s, border-color .25s;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* top accent strip */
+    .qr-top-strip {
+      background: var(--accent);
+      padding: 20px 20px 22px;
+      position: relative; overflow: hidden;
+    }
+    .qr-top-strip::before {
+      content: ''; position: absolute;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: rgba(255,255,255,.07);
+      top: -80px; right: -60px; pointer-events: none;
+    }
+    .qr-top-strip::after {
+      content: ''; position: absolute;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: rgba(255,255,255,.05);
+      bottom: -40px; left: -20px; pointer-events: none;
+    }
+    .strip-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: rgba(255,255,255,.7); margin-bottom: 4px;
+    }
+    .strip-shop {
+      font-size: 22px; font-weight: 900; letter-spacing: -.03em; color: #fff;
+    }
+    .strip-sub {
+      font-size: 13px; font-weight: 500; color: rgba(255,255,255,.75); margin-top: 3px;
+    }
+
+    /* QR code area */
+    .qr-body {
+      padding: 24px 20px 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+    }
+
+    .qr-frame {
+      position: relative;
+      padding: 16px; background: #fff; border-radius: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+    .qr-frame canvas { display: block; border-radius: 6px; }
+
+    /* corner decorations */
+    .qr-corner {
+      position: absolute; width: 20px; height: 20px;
+      border-color: var(--accent); border-style: solid;
+    }
+    .qr-corner.tl { top: 8px; left: 8px;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .qr-corner.tr { top: 8px; right: 8px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .qr-corner.bl { bottom: 8px; left: 8px;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .qr-corner.br { bottom: 8px; right: 8px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+    /* logo badge in center */
+    .qr-logo {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px; height: 44px; border-radius: 13px;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(255,107,53,.4);
+      border: 3px solid #fff;
+    }
+    .qr-logo svg { width: 20px; height: 20px; color: #fff; }
+
+    /* scan hint */
+    .scan-hint {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .scan-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(.75); }
+    }
+    .scan-text {
+      font-size: 13px; font-weight: 600; color: var(--text2); letter-spacing: -.01em;
+    }
+
+    /* divider */
+    .qr-sep { width: 100%; height: 1px; background: var(--sep); }
+
+    /* steps row */
+    .steps-row {
+      width: 100%;
+      display: flex; gap: 0;
+    }
+    .step {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 8px; padding: 16px 8px; text-align: center; position: relative;
+    }
+    .step + .step::before {
+      content: '→';
+      position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+      font-size: 12px; color: var(--text3);
+    }
+    .step-ico {
+      width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+      background: var(--inp);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-ico svg { width: 18px; height: 18px; color: var(--accent); }
+    .step-lbl {
+      font-size: 11px; font-weight: 600; color: var(--text2);
+      line-height: 1.35;
+    }
+
+    /* ── Points banner ──────────────────────────────────── */
+    .pts-banner {
+      width: 100%;
+      background: var(--accent-10); border: 1px solid var(--accent-20);
+      border-radius: 18px; padding: 16px 18px;
+      display: flex; align-items: center; gap: 14px;
+      animation: slideUp .45s .1s cubic-bezier(.22,1,.36,1) both;
+      transition: background .25s, border-color .25s;
+    }
+    .pts-ico {
+      width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pts-ico svg { width: 22px; height: 22px; color: #fff; }
+    .pts-info { flex: 1; min-width: 0; }
+    .pts-title { font-size: 15px; font-weight: 700; color: var(--text1); letter-spacing: -.01em; }
+    .pts-sub   { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.35; }
+    .pts-num {
+      font-size: 26px; font-weight: 900; letter-spacing: -.03em;
+      color: var(--accent); flex-shrink: 0; line-height: 1;
+    }
+    .pts-num span { font-size: 12px; font-weight: 700; color: var(--text2); }
+
+    /* ── URL strip ──────────────────────────────────────── */
+    .url-strip {
+      width: 100%;
+      background: var(--inp); border: 1px solid var(--inp-b);
+      border-radius: 14px; padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+      animation: slideUp .45s .18s cubic-bezier(.22,1,.36,1) both;
+      cursor: pointer; transition: border-color .2s, background .25s;
+      user-select: none;
+    }
+    .url-strip:active { border-color: var(--accent); }
+    .url-strip svg { width: 15px; height: 15px; color: var(--text2); flex-shrink: 0; }
+    .url-text {
+      flex: 1; min-width: 0;
+      font-size: 12px; font-weight: 500; color: var(--text2);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      letter-spacing: -.01em;
+    }
+    .copy-lbl {
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      flex-shrink: 0; transition: opacity .2s;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--text1); color: var(--bg);
+      font-size: 13px; font-weight: 600; border-radius: 99px;
+      padding: 10px 20px; opacity: 0; pointer-events: none;
+      transition: opacity .25s, transform .25s;
+      white-space: nowrap; z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-body">
+      <div class="logo-dot">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </div>
+      <div class="header-info">
+        <div class="header-shop" id="shop-lbl">Магазин</div>
+        <div class="header-title">QR-код для отзыва</div>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Сменить тему">
+        <svg id="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
+        </svg>
+        <svg id="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- QR Card -->
+    <div class="qr-card">
+      <div class="qr-top-strip">
+        <div class="strip-label">Заведение</div>
+        <div class="strip-shop" id="strip-shop-name">Магазин</div>
+        <div class="strip-sub">Отсканируйте и оставьте отзыв — получите поинты</div>
+      </div>
+
+      <div class="qr-body">
+        <div class="qr-frame">
+          <canvas id="qr-canvas"></canvas>
+          <div class="qr-corner tl"></div>
+          <div class="qr-corner tr"></div>
+          <div class="qr-corner bl"></div>
+          <div class="qr-corner br"></div>
+          <div class="qr-logo">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="scan-hint">
+          <div class="scan-dot"></div>
+          <div class="scan-text">Наведите камеру для сканирования</div>
+        </div>
+
+        <div class="qr-sep"></div>
+
+        <!-- How it works -->
+        <div class="steps-row">
+          <div class="step">
+            <div class="step-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <rect x="5" y="2" width="14" height="20" rx="3"/>
+                <path d="M9 7h6M9 11h6M9 15h4"/>
+              </svg>
+            </div>
+            <div class="step-lbl">Сканируйте<br>QR</div>
+          </div>
+          <div class="step">
+            <div class="step-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+            <div class="step-lbl">Оставьте<br>отзыв</div>
+          </div>
+          <div class="step">
+            <div class="step-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 12l3 3 5-5"/>
+              </svg>
+            </div>
+            <div class="step-lbl">Получите<br>поинты</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Points banner -->
+    <div class="pts-banner">
+      <div class="pts-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      </div>
+      <div class="pts-info">
+        <div class="pts-title">До 50 поинтов</div>
+        <div class="pts-sub">За каждый отзыв. Фото добавляет +10</div>
+      </div>
+      <div class="pts-num">50<br><span>pts</span></div>
+    </div>
+
+    <!-- URL copy strip -->
+    <div class="url-strip" onclick="copyUrl()" id="url-strip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+      </svg>
+      <div class="url-text" id="url-text">загрузка...</div>
+      <div class="copy-lbl" id="copy-lbl">Копировать</div>
+    </div>
+
+  </main>
+
+  <div class="toast" id="toast">Ссылка скопирована</div>
+
+  <script>
+    // ── Theme ────────────────────────────────────────────
+    const t0 = localStorage.getItem('theme') || 'dark';
+    applyTheme(t0);
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      document.getElementById('ico-moon').style.display = t === 'dark'  ? 'block' : 'none';
+      document.getElementById('ico-sun').style.display  = t === 'light' ? 'block' : 'none';
+    }
+    function toggleTheme() {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem('theme', next);
+    }
+
+    // ── Params ───────────────────────────────────────────
+    const p     = new URLSearchParams(location.search);
+    const shop  = p.get('shop') || '42';
+    const items = p.get('items') || 'Борщ,Стейк,Кофе латте';
+
+    document.getElementById('shop-lbl').textContent       = `Магазин #${shop}`;
+    document.getElementById('strip-shop-name').textContent = `Магазин #${shop}`;
+
+    // ── Build review URL ─────────────────────────────────
+    const reviewUrl = (() => {
+      const base = location.href.replace(/\/[^/]*$/, '/index.html');
+      return `${base}?shop=${encodeURIComponent(shop)}&items=${encodeURIComponent(items)}`;
+    })();
+
+    document.getElementById('url-text').textContent = reviewUrl;
+
+    // ── Generate QR ──────────────────────────────────────
+    QRCode.toCanvas(document.getElementById('qr-canvas'), reviewUrl, {
+      width: 220,
+      margin: 0,
+      errorCorrectionLevel: 'H',
+      color: {
+        dark:  '#1A1612',
+        light: '#ffffff',
+      },
+    }, err => {
+      if (err) console.error(err);
+    });
+
+    // ── Copy URL ─────────────────────────────────────────
+    function copyUrl() {
+      navigator.clipboard.writeText(reviewUrl).then(() => {
+        const lbl   = document.getElementById('copy-lbl');
+        const toast = document.getElementById('toast');
+        lbl.textContent = 'Скопировано ✓';
+        toast.classList.add('show');
+        setTimeout(() => {
+          lbl.textContent = 'Копировать';
+          toast.classList.remove('show');
+        }, 2200);
+      }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = reviewUrl; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      });
+    }
+  </script>
+</body>
+</html>
