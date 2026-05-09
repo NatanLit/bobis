@@ -2,5 +2,8 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.0",
     "tailwindcss": "^4.3.0"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
   }
 }
