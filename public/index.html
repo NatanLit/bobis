@@ -99,6 +99,15 @@
 
     .header-right { display: flex; align-items: center; gap: 8px; }
 
+    .profile-btn {
+      width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      transition: transform .15s ease, filter .15s ease; flex-shrink: 0;
+      text-decoration: none;
+    }
+    .profile-btn:active { transform: scale(.88); filter: brightness(.9); }
+    .profile-btn svg { width: 16px; height: 16px; color: #fff; }
+
     .counter-pill {
       background: var(--accent-10); border: 1px solid var(--accent-20);
       border-radius: 99px; padding: 4px 12px;
@@ -341,6 +350,11 @@
         <div class="counter-pill">
           <span id="done-c">0</span> / <span id="total-c">0</span>
         </div>
+        <a href="profile.html" class="profile-btn" aria-label="Профиль">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </a>
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Сменить тему">
           <svg id="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>

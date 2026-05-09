@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+  <title>Профиль</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --accent:    #FF6B35;
+      --accent-d:  #E85A26;
+      --accent-10: rgba(255,107,53,.10);
+      --accent-20: rgba(255,107,53,.20);
+      --success:   #22C55E;
+      --danger:    #EF4444;
+      --r:         20px;
+    }
+    [data-theme="dark"] {
+      --bg:       #141210; --card:#1E1B17; --card-b:#2A2520;
+      --text1:    #F5F0EB; --text2:#7A7068; --text3:#3D3830;
+      --inp:      #252118; --inp-b:#332E25; --sep:#252118;
+      --hdr:      rgba(20,18,16,.88);
+    }
+    [data-theme="light"] {
+      --bg:       #FAF8F5; --card:#FFFFFF; --card-b:#EAE6DF;
+      --text1:    #1A1612; --text2:#7A7068; --text3:#C0B8AE;
+      --inp:      #F7F4EF; --inp-b:#E4DDD5; --sep:#F0EDE8;
+      --hdr:      rgba(250,248,245,.88);
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg); color: var(--text1);
+      min-height: 100dvh; overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background .25s, color .25s;
+    }
+
+    /* ── Views ─────────────────────────────────────────────── */
+    .view {
+      position: fixed; inset: 0; z-index: 10;
+      background: var(--bg); overflow-y: auto;
+      transition: transform .35s cubic-bezier(.22,1,.36,1), opacity .3s ease;
+      display: flex; flex-direction: column;
+    }
+    .view.hidden     { transform: translateX(100%); opacity: 0; pointer-events: none; }
+    .view.slide-back { transform: translateX(-30%); opacity: 0; pointer-events: none; }
+
+    /* ── Shared header ─────────────────────────────────────── */
+    .hdr {
+      position: sticky; top: 0; z-index: 30;
+      background: var(--hdr);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border-bottom: 1px solid var(--sep);
+      padding-top: env(safe-area-inset-top);
+      transition: background .25s, border-color .25s;
+      flex-shrink: 0;
+    }
+    .hdr-inner {
+      max-width: 480px; margin: 0 auto;
+      padding: 13px 18px 12px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .back-btn {
+      width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer;
+      background: var(--inp); border: 1px solid var(--inp-b);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, transform .15s ease; flex-shrink: 0;
+    }
+    .back-btn:active { transform: scale(.88); }
+    .back-btn svg { width: 16px; height: 16px; color: var(--text1); }
+    .hdr-title { flex: 1; font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+    .theme-btn {
+      width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer;
+      background: var(--inp); border: 1px solid var(--inp-b);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, transform .15s ease; flex-shrink: 0;
+    }
+    .theme-btn:active { transform: scale(.88); }
+    .theme-btn svg { width: 15px; height: 15px; color: var(--text2); }
+
+    /* ── Scroll content wrapper ────────────────────────────── */
+    .scroll-body { max-width: 480px; margin: 0 auto; padding: 18px 14px; flex: 1; }
+    .pb-safe { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW: MAIN
+    ═══════════════════════════════════════════════════════ */
+
+    /* Profile hero row */
+    .hero-row {
+      display: flex; gap: 10px; margin-bottom: 18px;
+      overflow-x: auto; padding-bottom: 4px;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .hero-row::-webkit-scrollbar { display: none; }
+
+    /* Bonus hero card */
+    .bonus-hero {
+      min-width: 170px; flex: 1;
+      background: var(--accent);
+      border-radius: var(--r); padding: 18px 16px;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: transform .15s ease, filter .15s ease;
+      user-select: none;
+    }
+    .bonus-hero:active { transform: scale(.97); filter: brightness(.95); }
+    .bonus-hero::before {
+      content: ''; position: absolute;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: rgba(255,255,255,.08);
+      top: -30px; right: -30px;
+    }
+    .bonus-hero-lbl {
+      font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: rgba(255,255,255,.7); margin-bottom: 6px;
+    }
+    .bonus-hero-num {
+      font-size: 44px; font-weight: 900; letter-spacing: -.03em;
+      color: #fff; line-height: 1;
+    }
+    .bonus-hero-sub { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.75); margin-top: 4px; }
+    .bonus-hero-arrow {
+      position: absolute; bottom: 14px; right: 14px;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .bonus-hero-arrow svg { width: 14px; height: 14px; color: #fff; }
+
+    /* Purchases card */
+    .purchases-card {
+      min-width: 150px; flex: 1;
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r); padding: 18px 16px;
+      cursor: pointer; position: relative; overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.07);
+      transition: transform .15s ease, background .25s, border-color .25s;
+      user-select: none;
+    }
+    .purchases-card:active { transform: scale(.97); }
+    .purchases-card-ico {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: var(--inp); display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .purchases-card-ico svg { width: 20px; height: 20px; color: var(--accent); }
+    .purchases-card-lbl {
+      font-size: 10px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text2); margin-bottom: 4px;
+    }
+    .purchases-card-val { font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: var(--text1); }
+    .purchases-card-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* Section */
+    .section { margin-bottom: 24px; }
+    .section-title {
+      font-size: 19px; font-weight: 800; letter-spacing: -.025em;
+      color: var(--text1); margin-bottom: 12px;
+    }
+
+    /* Offer card */
+    .offer-empty {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r); padding: 32px 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.07);
+      transition: background .25s, border-color .25s;
+    }
+    .offer-empty-ico {
+      width: 52px; height: 52px; border-radius: 16px;
+      background: var(--accent-10); display: flex; align-items: center; justify-content: center;
+    }
+    .offer-empty-ico svg { width: 26px; height: 26px; color: var(--accent); }
+    .offer-empty-title { font-size: 15px; font-weight: 700; color: var(--text1); }
+    .offer-empty-sub   { font-size: 13px; color: var(--text2); line-height: 1.4; max-width: 220px; }
+
+    /* History item */
+    .hist-card {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r);
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.07);
+      overflow: hidden;
+      transition: background .25s, border-color .25s;
+    }
+    .hist-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px;
+    }
+    .hist-item + .hist-item { border-top: 1px solid var(--sep); }
+    .hist-dot {
+      width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hist-dot.plus  { background: rgba(34,197,94,.12); }
+    .hist-dot.minus { background: rgba(239,68,68,.1); }
+    .hist-dot svg { width: 16px; height: 16px; }
+    .hist-dot.plus  svg { color: var(--success); }
+    .hist-dot.minus svg { color: var(--danger); }
+    .hist-label { flex: 1; min-width: 0; }
+    .hist-label-main { font-size: 14px; font-weight: 600; color: var(--text1); }
+    .hist-label-date { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .hist-amount { font-size: 15px; font-weight: 700; white-space: nowrap; }
+    .hist-amount.plus  { color: var(--success); }
+    .hist-amount.minus { color: var(--danger); }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW: BONUS
+    ═══════════════════════════════════════════════════════ */
+    .bonus-hero-big {
+      background: var(--accent); border-radius: var(--r);
+      padding: 24px 20px; margin-bottom: 20px;
+      position: relative; overflow: hidden;
+    }
+    .bonus-hero-big::before {
+      content: ''; position: absolute;
+      width: 160px; height: 160px; border-radius: 50%;
+      background: rgba(255,255,255,.07); top: -50px; right: -40px;
+    }
+    .bonus-hero-big::after {
+      content: ''; position: absolute;
+      width: 100px; height: 100px; border-radius: 50%;
+      background: rgba(255,255,255,.05); bottom: -20px; left: 10px;
+    }
+    .bhb-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.7); margin-bottom: 4px; }
+    .bhb-num   { font-size: 58px; font-weight: 900; letter-spacing: -.04em; color: #fff; line-height: 1; }
+    .bhb-sub   { font-size: 14px; font-weight: 500; color: rgba(255,255,255,.75); margin-top: 6px; }
+
+    /* Spend carousel */
+    .spend-scroll {
+      display: flex; gap: 10px;
+      overflow-x: auto; padding-bottom: 6px;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .spend-scroll::-webkit-scrollbar { display: none; }
+    .spend-item {
+      min-width: 130px; flex-shrink: 0;
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r); padding: 16px 14px; cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.07);
+      transition: transform .15s ease, border-color .2s, background .25s;
+    }
+    .spend-item:active { transform: scale(.95); }
+    .spend-item.selected { border-color: var(--accent); background: var(--accent-10); }
+    .spend-ico {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: var(--inp); display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
+    }
+    .spend-ico svg { width: 26px; height: 26px; }
+    .spend-name { font-size: 13px; font-weight: 700; color: var(--text1); margin-bottom: 4px; }
+    .spend-pts  { font-size: 12px; font-weight: 600; color: var(--accent); }
+
+    /* What is bonus */
+    .explain-card {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r); padding: 18px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.07);
+      transition: background .25s, border-color .25s;
+    }
+    .explain-top {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    }
+    .explain-ico {
+      width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+      background: var(--accent-10); display: flex; align-items: center; justify-content: center;
+    }
+    .explain-ico svg { width: 18px; height: 18px; color: var(--accent); }
+    .explain-title { font-size: 16px; font-weight: 700; color: var(--text1); }
+    .explain-text  { font-size: 13px; color: var(--text2); line-height: 1.55; }
+
+    /* ═══════════════════════════════════════════════════════
+       VIEW: PURCHASES
+    ═══════════════════════════════════════════════════════ */
+    .purchase-item {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r);
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.07);
+      overflow: hidden; margin-bottom: 10px;
+      transition: background .25s, border-color .25s;
+    }
+    .purchase-head {
+      padding: 14px 16px 12px;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .purchase-date { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); margin-bottom: 3px; }
+    .purchase-shop { font-size: 16px; font-weight: 700; color: var(--text1); }
+    .purchase-pts  {
+      font-size: 13px; font-weight: 700; color: var(--accent);
+      background: var(--accent-10); border: 1px solid var(--accent-20);
+      border-radius: 8px; padding: 4px 10px; white-space: nowrap; flex-shrink: 0;
+    }
+    .purchase-sep { height: 1px; background: var(--sep); margin: 0 16px; }
+    .purchase-items-list { padding: 10px 16px 14px; display: flex; flex-direction: column; gap: 6px; }
+    .purchase-row { display: flex; justify-content: space-between; align-items: center; }
+    .purchase-row-name { font-size: 14px; color: var(--text1); font-weight: 500; }
+    .purchase-row-price { font-size: 13px; color: var(--text2); font-weight: 500; }
+
+    /* Empty state */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 10px; padding: 48px 20px; text-align: center;
+    }
+    .empty-state-ico {
+      width: 60px; height: 60px; border-radius: 18px;
+      background: var(--inp); display: flex; align-items: center; justify-content: center;
+    }
+    .empty-state-ico svg { width: 28px; height: 28px; color: var(--text2); }
+    .empty-state-title { font-size: 17px; font-weight: 700; color: var(--text1); }
+    .empty-state-sub   { font-size: 14px; color: var(--text2); max-width: 240px; line-height: 1.4; }
+
+    /* Entrance animation */
+    @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+    .fade-in { animation: fadeIn .4s cubic-bezier(.22,1,.36,1) both; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════ VIEW: MAIN ═══════ -->
+  <div class="view" id="view-main">
+    <div class="hdr">
+      <div class="hdr-inner">
+        <button class="back-btn" onclick="goBack()" aria-label="Назад">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M19 12H5m7-7l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="hdr-title">Профиль</div>
+        <button class="theme-btn" onclick="toggleTheme()">
+          <svg id="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
+          </svg>
+          <svg id="ico-sun" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="scroll-body pb-safe">
+      <!-- Hero cards row -->
+      <div class="hero-row fade-in">
+        <div class="bonus-hero" onclick="openView('view-bonus')">
+          <div class="bonus-hero-lbl">Ваши поинты</div>
+          <div class="bonus-hero-num" id="main-pts">0</div>
+          <div class="bonus-hero-sub">поинтов накоплено</div>
+          <div class="bonus-hero-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M5 12h14m-7-7 7 7-7 7"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="purchases-card" onclick="openView('view-purchases')">
+          <div class="purchases-card-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+          </div>
+          <div class="purchases-card-lbl">Покупки</div>
+          <div class="purchases-card-val" id="main-pcount">0</div>
+          <div class="purchases-card-sub">визитов</div>
+        </div>
+      </div>
+
+      <!-- Special offers -->
+      <div class="section fade-in" style="animation-delay:.07s">
+        <div class="section-title">Специальные предложения</div>
+        <div class="offer-empty">
+          <div class="offer-empty-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+          </div>
+          <div class="offer-empty-title">Предложений пока нет</div>
+          <div class="offer-empty-sub">Мы добавим специальные предложения для вас скоро</div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="section fade-in" style="animation-delay:.14s">
+        <div class="section-title">История</div>
+        <div class="hist-card" id="main-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ VIEW: BONUS ═══════ -->
+  <div class="view hidden" id="view-bonus">
+    <div class="hdr">
+      <div class="hdr-inner">
+        <button class="back-btn" onclick="closeView('view-bonus')" aria-label="Назад">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M19 12H5m7-7l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="hdr-title">Ваши поинты</div>
+        <div style="width:34px"></div>
+      </div>
+    </div>
+
+    <div class="scroll-body pb-safe">
+      <!-- Big bonus card -->
+      <div class="bonus-hero-big fade-in">
+        <div class="bhb-label">Накоплено поинтов</div>
+        <div class="bhb-num" id="bonus-pts">0</div>
+        <div class="bhb-sub">Выберите на что потратить</div>
+      </div>
+
+      <!-- Spend carousel -->
+      <div class="section fade-in" style="animation-delay:.06s">
+        <div class="section-title">Потратить поинты</div>
+        <div class="spend-scroll" id="spend-scroll"></div>
+      </div>
+
+      <!-- What is bonus -->
+      <div class="section fade-in" style="animation-delay:.12s">
+        <div class="explain-card">
+          <div class="explain-top">
+            <div class="explain-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/>
+              </svg>
+            </div>
+            <div class="explain-title">Что такое поинты?</div>
+          </div>
+          <div class="explain-text">
+            Поинты — это ваши бонусы за отзывы. Оставляете отзыв о блюде → получаете поинты.<br><br>
+            Чем подробнее отзыв и чем выше оценка — тем больше поинтов. Фото к отзыву добавляет ещё +10 поинтов.<br><br>
+            Накопленные поинты можно потратить на блюда из нашего меню.
+          </div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="section fade-in" style="animation-delay:.18s">
+        <div class="section-title">История начислений</div>
+        <div class="hist-card" id="bonus-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ VIEW: PURCHASES ═══════ -->
+  <div class="view hidden" id="view-purchases">
+    <div class="hdr">
+      <div class="hdr-inner">
+        <button class="back-btn" onclick="closeView('view-purchases')" aria-label="Назад">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M19 12H5m7-7l-7 7 7 7"/>
+          </svg>
+        </button>
+        <div class="hdr-title">Мои покупки</div>
+        <div style="width:34px"></div>
+      </div>
+    </div>
+
+    <div class="scroll-body pb-safe" id="purchases-body"></div>
+  </div>
+
+  <script>
+    // ── Theme ────────────────────────────────────────────────
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    applyTheme(savedTheme);
+    function applyTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      document.getElementById('ico-moon').style.display = t==='dark'  ? 'block' : 'none';
+      document.getElementById('ico-sun').style.display  = t==='light' ? 'block' : 'none';
+    }
+    function toggleTheme() {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next); localStorage.setItem('theme', next);
+    }
+
+    // ── Navigation ───────────────────────────────────────────
+    function openView(id) {
+      document.getElementById(id).classList.remove('hidden');
+      requestAnimationFrame(() => document.getElementById(id).scrollTop = 0);
+    }
+    function closeView(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+    function goBack() {
+      window.history.back();
+    }
+
+    // ── Data (demo) ──────────────────────────────────────────
+    const params = new URLSearchParams(location.search);
+    const points = parseInt(params.get('points') || localStorage.getItem('user_points') || '0');
+    if (points) localStorage.setItem('user_points', points);
+
+    const history = JSON.parse(localStorage.getItem('bonus_history') || '[]');
+    // Add points from URL if present
+    if (params.get('points') && parseInt(params.get('points')) > 0) {
+      const newEntry = {
+        type: 'plus',
+        label: 'За отзыв в ресторане',
+        amount: parseInt(params.get('points')),
+        date: new Date().toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
+      };
+      if (!history.find(h => h.label === newEntry.label && h.date === newEntry.date)) {
+        history.unshift(newEntry);
+        localStorage.setItem('bonus_history', JSON.stringify(history));
+      }
+    }
+
+    // Demo purchases
+    const purchases = JSON.parse(localStorage.getItem('purchases') || JSON.stringify([
+      {
+        date: '9 мая 2026', shop: 'Магазин #42',
+        items: [{ name:'Борщ', price:'620 ₽' }, { name:'Стейк', price:'1 290 ₽' }, { name:'Кофе латте', price:'320 ₽' }],
+        pts: 80,
+      }
+    ]));
+
+    // Demo spend menu
+    const spendMenu = [
+      { name:'Борщ',       pts:150, color:'#FF6B35',
+        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 20c0 6 4 10 10 10s10-4 10-10"/><path d="M6 20h24"/><path d="M12 8s0 4 6 4 6-4 6-4"/><path d="M18 4v4"/></svg>` },
+      { name:'Кофе',       pts:50,  color:'#8B5E3C',
+        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 14h18l-2 14H8L6 14z"/><path d="M24 17h3a3 3 0 010 6h-3"/><path d="M10 6s1 3 4 3 4-3 4-3"/></svg>` },
+      { name:'Стейк',      pts:300, color:'#C0392B',
+        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><ellipse cx="18" cy="20" rx="12" ry="8"/><path d="M10 20s2-6 8-6 8 6 8 6"/><path d="M14 14l2-5 2 5"/></svg>` },
+      { name:'Десерт',     pts:100, color:'#E91E8C',
+        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 22h16l-2 8H12l-2-8z"/><path d="M8 22c0-6 4-14 10-14s10 8 10 14"/><path d="M14 12c0 0 1 4 4 4s4-4 4-4"/></svg>` },
+      { name:'Салат',      pts:80,  color:'#27AE60',
+        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 24c0 0 2-12 10-12s10 12 10 12H8z"/><path d="M12 18s2-6 6-6"/><path d="M18 14s2 4 6 8"/></svg>` },
+    ];
+
+    // ── Render ───────────────────────────────────────────────
+    function renderAll() {
+      // Main view
+      document.getElementById('main-pts').textContent    = points;
+      document.getElementById('bonus-pts').textContent   = points;
+      document.getElementById('main-pcount').textContent = purchases.length;
+
+      // Spend carousel
+      document.getElementById('spend-scroll').innerHTML = spendMenu.map((item, i) => `
+        <div class="spend-item" onclick="selectSpend(${i})" id="spend-${i}">
+          <div class="spend-ico" style="background:${item.color}18">
+            <svg viewBox="0 0 36 36" fill="none" stroke="${item.color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              ${item.svg.replace(/<svg[^>]*>|<\/svg>/g,'')}
+            </svg>
+          </div>
+          <div class="spend-name">${item.name}</div>
+          <div class="spend-pts">${item.pts} pts</div>
+        </div>
+      `).join('');
+
+      // History (shared)
+      const histHtml = history.length
+        ? history.map(h => `
+            <div class="hist-item">
+              <div class="hist-dot ${h.type}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  ${h.type==='plus'
+                    ? '<path d="M12 5v14m-7-7h14"/>'
+                    : '<path d="M5 12h14"/>'}
+                </svg>
+              </div>
+              <div class="hist-label">
+                <div class="hist-label-main">${h.label}</div>
+                <div class="hist-label-date">${h.date}</div>
+              </div>
+              <div class="hist-amount ${h.type}">${h.type==='plus'?'+':'−'}${h.amount} pts</div>
+            </div>`).join('')
+        : `<div class="empty-state">
+            <div class="empty-state-ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="empty-state-title">История пуста</div>
+            <div class="empty-state-sub">Здесь появятся ваши поинты после первого отзыва</div>
+          </div>`;
+
+      document.getElementById('main-history').innerHTML   = histHtml;
+      document.getElementById('bonus-history').innerHTML  = histHtml;
+
+      // Purchases
+      const purchBody = document.getElementById('purchases-body');
+      if (!purchases.length) {
+        purchBody.innerHTML = `<div class="empty-state">
+          <div class="empty-state-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+          </div>
+          <div class="empty-state-title">Покупок нет</div>
+          <div class="empty-state-sub">Здесь появятся ваши визиты в ресторан</div>
+        </div>`;
+      } else {
+        purchBody.innerHTML = purchases.map(p => `
+          <div class="purchase-item">
+            <div class="purchase-head">
+              <div>
+                <div class="purchase-date">${p.date}</div>
+                <div class="purchase-shop">${p.shop}</div>
+              </div>
+              <div class="purchase-pts">+${p.pts} pts</div>
+            </div>
+            <div class="purchase-sep"></div>
+            <div class="purchase-items-list">
+              ${p.items.map(it => `
+                <div class="purchase-row">
+                  <div class="purchase-row-name">${it.name}</div>
+                  <div class="purchase-row-price">${it.price}</div>
+                </div>`).join('')}
+            </div>
+          </div>`).join('');
+      }
+    }
+
+    function selectSpend(i) {
+      document.querySelectorAll('.spend-item').forEach((el,j) => {
+        el.classList.toggle('selected', j === i);
+      });
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
