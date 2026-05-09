@@ -1,6 +1,10 @@
 const OpenAI = require('openai');
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let client = null;
+function getClient() {
+  if (!client) client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return client;
+}
 
 async function scoreReview({ text, stars, hasPhoto }) {
   const prompt = `Оцени отзыв на товар/блюдо по 4 критериям. Верни ТОЛЬКО JSON без пояснений.
@@ -18,7 +22,7 @@ async function scoreReview({ text, stars, hasPhoto }) {
 Верни строго:
 {"score": <число 0-100>}`;
 
-  const response = await client.chat.completions.create({
+  const response = await getClient().chat.completions.create({
     model: 'gpt-4o-mini',
     max_tokens: 50,
     temperature: 0,
