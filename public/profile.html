@@ -90,7 +90,10 @@
     .theme-btn svg { width: 15px; height: 15px; color: var(--text2); }
 
     /* ── Scroll content wrapper ────────────────────────────── */
-    .scroll-body { max-width: 480px; margin: 0 auto; padding: 18px 14px; flex: 1; }
+    .scroll-body { max-width: 480px; margin: 0 auto; padding: 18px 14px; flex: 1; width: 100%; min-width: 0; }
+    .scroll-body * { min-width: 0; }
+    .bonus-hero-big, .explain-card, .hist-card { width: 100%; box-sizing: border-box; }
+    .bhb-sub, .explain-card p, .hist-label-main, .hist-label-sub { overflow-wrap: break-word; word-break: break-word; }
     .pb-safe { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 
     /* ═══════════════════════════════════════════════════════
@@ -486,6 +489,8 @@
       const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       applyTheme(next); localStorage.setItem('theme', next);
     }
+    window.addEventListener('pageshow', () => applyTheme(localStorage.getItem('theme') || 'dark'));
+    window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(e.newValue || 'dark'); });
 
     // ── Navigation ───────────────────────────────────────────
     function openView(id) {

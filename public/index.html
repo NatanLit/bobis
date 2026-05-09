@@ -462,6 +462,8 @@
       applyTheme(next);
       localStorage.setItem('theme', next);
     }
+    window.addEventListener('pageshow', () => applyTheme(localStorage.getItem('theme') || 'dark'));
+    window.addEventListener('storage', e => { if (e.key === 'theme') applyTheme(e.newValue || 'dark'); });
 
     // ── Profile button: show points count inside ─────────────
     const savedPts = parseInt(localStorage.getItem('user_points') || '0');
