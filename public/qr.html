@@ -6,7 +6,7 @@
   <title>QR — Оставить отзыв</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="qrcode.js"></script>
   <style>
     *, *::before, *::after {
       box-sizing: border-box; margin: 0; padding: 0;
@@ -437,7 +437,7 @@
     document.getElementById('url-text').textContent = reviewUrl;
 
     // ── Generate QR ──────────────────────────────────────
-    QRCode.toCanvas(document.getElementById('qr-canvas'), reviewUrl, {
+    QRCodeLib.toCanvas(document.getElementById('qr-canvas'), reviewUrl, {
       width: 220,
       margin: 0,
       errorCorrectionLevel: 'H',
