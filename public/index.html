@@ -1,37 +1,62 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Оставить отзыв</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0; padding: 0;
+      box-sizing: border-box; margin: 0; padding: 0;
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* ── Tokens ─────────────────────────────────────────────── */
     :root {
-      --bg:          #0A0A0F;
-      --bg2:         #111118;
-      --card:        rgba(255,255,255,0.04);
-      --card-border: rgba(255,255,255,0.08);
-      --card-hover:  rgba(255,255,255,0.07);
-      --text1:       #FFFFFF;
-      --text2:       rgba(255,255,255,0.55);
-      --text3:       rgba(255,255,255,0.28);
-      --accent1:     #FF6B35;
-      --accent2:     #FF9A3C;
-      --accent-glow: rgba(255,107,53,0.25);
-      --star:        #FFD60A;
-      --star-glow:   rgba(255,214,10,0.4);
-      --success:     #32D74B;
-      --danger:      #FF453A;
-      --separator:   rgba(255,255,255,0.07);
+      --accent:   #58CC02;   /* Duolingo green — confident, fresh */
+      --accent-d: #46A302;
+      --danger:   #FF4B4B;
+      --star:     #FFC800;
+
+      --radius-card: 20px;
+      --radius-btn:  16px;
+      --radius-input:14px;
+
+      --transition: .2s ease;
     }
 
+    [data-theme="dark"] {
+      --bg:        #111111;
+      --bg2:       #1A1A1A;
+      --card:      #1C1C1C;
+      --card-b:    #2C2C2C;
+      --text1:     #FFFFFF;
+      --text2:     #8A8A8A;
+      --text3:     #444444;
+      --input-bg:  #242424;
+      --input-b:   #333333;
+      --sep:       #242424;
+      --header-bg: rgba(17,17,17,0.88);
+      --shadow:    0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.25);
+    }
+
+    [data-theme="light"] {
+      --bg:        #F4F4F4;
+      --bg2:       #EBEBEB;
+      --card:      #FFFFFF;
+      --card-b:    #E8E8E8;
+      --text1:     #111111;
+      --text2:     #777777;
+      --text3:     #BBBBBB;
+      --input-bg:  #F8F8F8;
+      --input-b:   #E4E4E4;
+      --sep:       #F0F0F0;
+      --header-bg: rgba(244,244,244,0.88);
+      --shadow:    0 1px 2px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+    }
+
+    /* ── Base ────────────────────────────────────────────────── */
     html { scroll-behavior: smooth; }
 
     body {
@@ -39,347 +64,321 @@
       background: var(--bg);
       color: var(--text1);
       min-height: 100dvh;
-      overflow-x: hidden;
+      transition: background var(--transition), color var(--transition);
     }
 
-    /* ── Ambient background ── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0; z-index: 0;
-      background:
-        radial-gradient(ellipse 70% 50% at 50% -10%, rgba(255,107,53,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 90% 110%, rgba(255,154,60,0.08) 0%, transparent 55%);
-      pointer-events: none;
-    }
-
-    /* ── Header ── */
+    /* ── Header ─────────────────────────────────────────────── */
     .header {
-      position: sticky; top: 0; z-index: 30;
+      position: sticky; top: 0; z-index: 40;
       padding-top: env(safe-area-inset-top);
-      background: rgba(10,10,15,0.75);
-      backdrop-filter: saturate(180%) blur(24px);
-      -webkit-backdrop-filter: saturate(180%) blur(24px);
-      border-bottom: 1px solid var(--separator);
+      background: var(--header-bg);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--sep);
+      transition: background var(--transition), border-color var(--transition);
     }
     .header-inner {
       max-width: 480px; margin: 0 auto;
-      padding: 14px 20px 10px;
-      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 18px 11px;
+      display: flex; align-items: center; gap: 12px;
     }
+    .header-text { flex: 1; }
     .header-shop {
       font-size: 11px; font-weight: 600;
-      letter-spacing: .12em; text-transform: uppercase;
-      color: var(--accent1); margin-bottom: 2px;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 1px;
     }
     .header-title {
-      font-size: 20px; font-weight: 800; letter-spacing: -.02em;
+      font-size: 17px; font-weight: 700; letter-spacing: -.025em;
+      color: var(--text1);
     }
+    .header-right { display: flex; align-items: center; gap: 10px; }
     .header-counter {
       text-align: right;
     }
-    .header-counter-label {
-      font-size: 10px; color: var(--text3);
-      font-weight: 500; margin-bottom: 2px;
-    }
     .header-counter-val {
-      font-size: 18px; font-weight: 800; letter-spacing: -.02em;
+      font-size: 15px; font-weight: 700; letter-spacing: -.02em; color: var(--text1);
     }
-    .header-counter-val span { color: var(--text3); font-weight: 500; font-size: 14px; }
+    .header-counter-val small { font-size: 13px; font-weight: 400; color: var(--text2); }
 
-    /* Progress bar */
+    /* Theme toggle */
+    .theme-btn {
+      width: 34px; height: 34px; border-radius: 10px; border: none; cursor: pointer;
+      background: var(--card); border: 1px solid var(--card-b);
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), border-color var(--transition), transform .15s ease;
+      flex-shrink: 0;
+    }
+    .theme-btn:active { transform: scale(.9); }
+    .theme-btn svg { width: 16px; height: 16px; color: var(--text2); }
+
+    /* Progress */
+    .progress-wrap {
+      max-width: 480px; margin: 0 auto;
+      padding: 0 18px 11px;
+    }
     .progress-track {
-      height: 2px; margin: 0 20px 1px;
-      background: var(--separator); border-radius: 99px; overflow: hidden;
+      height: 3px; background: var(--sep); border-radius: 99px; overflow: hidden;
     }
     .progress-fill {
       height: 100%; border-radius: 99px;
-      background: linear-gradient(90deg, var(--accent1), var(--accent2));
-      transition: width .6s cubic-bezier(.34,1.2,.64,1);
-      box-shadow: 0 0 12px var(--accent-glow);
+      background: var(--accent);
+      transition: width .5s cubic-bezier(.34,1.2,.64,1);
     }
 
-    /* ── Main ── */
+    /* ── Main ───────────────────────────────────────────────── */
     .main {
-      position: relative; z-index: 1;
       max-width: 480px; margin: 0 auto;
-      padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
+      padding: 16px 14px; display: flex; flex-direction: column; gap: 12px;
     }
 
-    /* ── Card ── */
+    /* ── Card ───────────────────────────────────────────────── */
     .card {
       background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: 24px;
+      border: 1px solid var(--card-b);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow);
       overflow: hidden;
-      opacity: 0;
-      transform: translateY(18px);
-      animation: cardIn .5s cubic-bezier(.22,1,.36,1) forwards;
-      transition: border-color .3s ease, box-shadow .3s ease;
+      opacity: 0; transform: translateY(14px);
+      animation: cardIn .45s cubic-bezier(.22,1,.36,1) forwards;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
     }
-    .card.done {
-      border-color: rgba(50,215,75,0.3);
-      box-shadow: 0 0 0 1px rgba(50,215,75,0.15), 0 8px 32px rgba(50,215,75,0.08);
-    }
-    @keyframes cardIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
+    .card.done { border-color: var(--accent); }
+    @keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
 
-    /* Card header */
     .card-head {
-      padding: 18px 20px 14px;
-      display: flex; align-items: flex-start; gap: 12px;
+      padding: 16px 18px 14px;
+      display: flex; align-items: center; gap: 12px;
     }
     .card-num {
-      width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
-      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+      background: var(--accent);
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 800; color: #fff;
-      box-shadow: 0 4px 16px var(--accent-glow);
+      font-size: 13px; font-weight: 800; color: #fff;
     }
-    .card-head-text { flex: 1; min-width: 0; }
-    .card-pos-label {
-      font-size: 10px; font-weight: 600; letter-spacing: .1em;
-      text-transform: uppercase; color: var(--text3); margin-bottom: 3px;
+    .card.done .card-num { background: var(--accent); }
+    .card-label {
+      font-size: 10px; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text2); margin-bottom: 2px;
     }
     .card-name {
-      font-size: 18px; font-weight: 700; letter-spacing: -.02em;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-size: 16px; font-weight: 700; letter-spacing: -.02em;
+      color: var(--text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .card-done-badge {
-      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-      background: var(--success); display: none; align-items: center; justify-content: center;
-      margin-top: 7px;
+    .card-check {
+      margin-left: auto; flex-shrink: 0;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent);
+      display: none; align-items: center; justify-content: center;
     }
-    .card-done-badge svg { width: 12px; height: 12px; }
-    .card.done .card-done-badge { display: flex; }
+    .card-check svg { width: 11px; height: 11px; color: #fff; }
+    .card.done .card-check { display: flex; }
 
-    /* Divider */
-    .divider { height: 1px; background: var(--separator); margin: 0 20px; }
+    .sep { height: 1px; background: var(--sep); margin: 0 18px; }
 
-    /* Stars */
-    .stars-section { padding: 16px 20px 14px; }
-    .section-label {
-      font-size: 10px; font-weight: 700; letter-spacing: .1em;
-      text-transform: uppercase; color: var(--text3); margin-bottom: 12px;
+    /* ── Stars ──────────────────────────────────────────────── */
+    .stars-wrap { padding: 14px 18px 12px; }
+    .field-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--text2); margin-bottom: 12px;
     }
-    .stars-row { display: flex; gap: 8px; }
+    .stars-row { display: flex; gap: 6px; }
     .star-btn {
-      width: 48px; height: 48px; border-radius: 14px; border: none; cursor: pointer;
-      background: rgba(255,255,255,0.05);
+      width: 46px; height: 46px; border-radius: 12px; border: none; cursor: pointer;
+      background: var(--input-bg); border: 1px solid var(--input-b);
       display: flex; align-items: center; justify-content: center;
-      transition: transform .2s cubic-bezier(.34,1.56,.64,1), background .2s ease, box-shadow .2s ease;
+      transition: background var(--transition), border-color var(--transition),
+                  transform .15s cubic-bezier(.34,1.56,.64,1);
       outline: none;
     }
-    .star-btn:active { transform: scale(.8) !important; }
+    .star-btn:active { transform: scale(.82); }
     .star-btn svg {
-      width: 24px; height: 24px;
-      fill: rgba(255,255,255,0.12);
-      transition: fill .15s ease, filter .15s ease;
+      width: 22px; height: 22px; fill: var(--text3);
+      transition: fill var(--transition);
     }
-    .star-btn.lit {
-      background: rgba(255,214,10,0.1);
-      box-shadow: 0 0 16px var(--star-glow);
-    }
-    .star-btn.lit svg {
-      fill: var(--star);
-      filter: drop-shadow(0 0 6px var(--star-glow));
-    }
+    .star-btn.lit { background: #FFC80015; border-color: #FFC80030; }
+    .star-btn.lit svg { fill: var(--star); }
 
-    /* Text section */
-    .text-section { padding: 0 20px 16px; }
+    /* ── Textarea ────────────────────────────────────────────── */
+    .text-wrap { padding: 0 18px 14px; }
     .text-meta {
       display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 10px;
     }
-    .char-count {
-      font-size: 11px; font-weight: 600; color: var(--text3);
-      transition: color .2s ease;
-    }
-    .review-textarea {
-      width: 100%; min-height: 90px;
-      background: rgba(255,255,255,0.04);
-      border: 1.5px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: 14px 16px;
+    .char-cnt { font-size: 11px; font-weight: 600; color: var(--text3); transition: color var(--transition); }
+    .review-ta {
+      width: 100%; min-height: 88px;
+      background: var(--input-bg); border: 1px solid var(--input-b);
+      border-radius: var(--radius-input); padding: 13px 15px;
       font-family: inherit; font-size: 14px; font-weight: 400;
-      color: var(--text1); line-height: 1.6;
-      resize: none; outline: none;
-      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-      -webkit-appearance: none;
+      color: var(--text1); line-height: 1.55;
+      resize: none; outline: none; -webkit-appearance: none;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
     }
-    .review-textarea::placeholder { color: var(--text3); }
-    .review-textarea:focus {
-      border-color: rgba(255,107,53,0.5);
-      background: rgba(255,107,53,0.04);
-      box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+    .review-ta::placeholder { color: var(--text3); }
+    .review-ta:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
     }
 
-    /* Photo section */
-    .photo-section { padding: 0 20px 20px; }
+    /* ── Photo ──────────────────────────────────────────────── */
+    .photo-wrap { padding: 0 18px 18px; }
     .photo-zone {
-      border: 1.5px dashed rgba(255,255,255,0.12);
-      border-radius: 18px; overflow: hidden; cursor: pointer;
-      transition: border-color .2s ease, background .2s ease;
+      border: 1.5px dashed var(--input-b);
+      border-radius: var(--radius-input); overflow: hidden; cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
     }
-    .photo-zone:active { background: rgba(255,107,53,0.04); border-color: var(--accent1); }
+    .photo-zone:active { border-color: var(--accent); }
     .photo-hint {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 16px;
+      display: flex; align-items: center; gap: 11px; padding: 13px 15px;
     }
-    .photo-icon {
-      width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
-      background: rgba(255,107,53,0.12);
+    .photo-ico {
+      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
       display: flex; align-items: center; justify-content: center;
     }
-    .photo-icon svg { width: 18px; height: 18px; color: var(--accent1); }
-    .photo-hint-text p:first-child {
-      font-size: 14px; font-weight: 600; color: var(--text1); margin-bottom: 2px;
+    .photo-ico svg { width: 16px; height: 16px; color: var(--accent); }
+    .photo-hint-t { flex: 1; }
+    .photo-hint-t p:first-child { font-size: 14px; font-weight: 600; color: var(--text1); margin-bottom: 1px; }
+    .photo-hint-t p:last-child  { font-size: 12px; color: var(--text2); }
+    .photo-badge {
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-radius: 7px; padding: 3px 8px; flex-shrink: 0;
     }
-    .photo-hint-text p:last-child { font-size: 12px; color: var(--text3); }
-    .photo-bonus {
-      margin-left: auto; flex-shrink: 0;
-      background: rgba(255,107,53,0.12);
-      border: 1px solid rgba(255,107,53,0.2);
-      border-radius: 8px; padding: 4px 8px;
-      font-size: 11px; font-weight: 700; color: var(--accent1);
-    }
-    .photo-preview {
-      width: 100%; height: 180px; object-fit: cover; display: none;
-    }
+    .photo-preview { width: 100%; height: 170px; object-fit: cover; display: none; }
 
-    /* ── Submit section ── */
-    .submit-section {
-      position: relative; z-index: 1;
+    /* ── Submit ─────────────────────────────────────────────── */
+    .submit-wrap {
       max-width: 480px; margin: 0 auto;
-      padding: 0 16px;
+      padding: 0 14px;
       padding-bottom: max(24px, env(safe-area-inset-bottom));
       display: none;
     }
-    .submit-hint {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--card-border);
-      border-radius: 18px; padding: 14px 16px;
-      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    .hint-icon {
-      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
-      background: rgba(255,214,10,0.1);
+    .submit-wrap.show { animation: fadeUp .4s cubic-bezier(.22,1,.36,1) forwards; }
+
+    .info-card {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--radius-card); box-shadow: var(--shadow);
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+      margin-bottom: 10px;
+      transition: background var(--transition), border-color var(--transition);
+    }
+    .info-icon {
+      width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+      background: color-mix(in srgb, var(--star) 12%, transparent);
       display: flex; align-items: center; justify-content: center;
     }
-    .hint-icon svg { width: 16px; height: 16px; color: var(--star); }
-    .hint-text { font-size: 13px; color: var(--text2); line-height: 1.45; }
+    .info-icon svg { width: 15px; height: 15px; color: var(--star); }
+    .info-text { font-size: 13px; color: var(--text2); line-height: 1.45; }
 
-    .terms-label {
-      display: flex; align-items: flex-start; gap: 12px; cursor: pointer;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--card-border);
-      border-radius: 18px; padding: 14px 16px; margin-bottom: 14px;
+    .terms-row {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--radius-card); box-shadow: var(--shadow);
+      padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px;
+      cursor: pointer; margin-bottom: 12px;
+      transition: background var(--transition), border-color var(--transition);
     }
     .terms-cb { display: none; }
-    .terms-box {
+    .chk-box {
       width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0; margin-top: 1px;
-      border: 1.5px solid rgba(255,255,255,0.2);
+      border: 1.5px solid var(--input-b);
       display: flex; align-items: center; justify-content: center;
-      transition: background .15s ease, border-color .15s ease;
+      transition: background var(--transition), border-color var(--transition);
     }
-    .terms-cb:checked ~ .terms-box {
-      background: var(--accent1); border-color: var(--accent1);
-    }
-    .terms-box svg { width: 11px; height: 11px; display: none; }
-    .terms-cb:checked ~ .terms-box svg { display: block; }
+    .terms-cb:checked ~ .chk-box { background: var(--accent); border-color: var(--accent); }
+    .chk-box svg { width: 11px; height: 11px; display: none; }
+    .terms-cb:checked ~ .chk-box svg { display: block; }
     .terms-text { font-size: 13px; color: var(--text2); line-height: 1.45; }
 
     .submit-btn {
-      width: 100%; height: 58px; border: none; border-radius: 20px; cursor: pointer;
-      background: linear-gradient(135deg, var(--accent1) 0%, var(--accent2) 100%);
-      color: #fff; font-family: inherit; font-size: 16px; font-weight: 700;
-      letter-spacing: -.01em;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      box-shadow: 0 8px 32px var(--accent-glow), 0 2px 8px rgba(0,0,0,0.3);
-      transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+      width: 100%; height: 56px; border: none; border-radius: var(--radius-btn); cursor: pointer;
+      background: var(--accent); color: #fff;
+      font-family: inherit; font-size: 16px; font-weight: 700; letter-spacing: -.01em;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background .15s ease, transform .15s ease, opacity .15s ease;
       outline: none;
     }
-    .submit-btn:active:not(:disabled) {
-      transform: scale(.97);
-      box-shadow: 0 4px 16px var(--accent-glow);
-    }
-    .submit-btn:disabled {
-      background: rgba(255,255,255,0.1);
-      box-shadow: none; color: var(--text3);
-    }
+    .submit-btn:active:not(:disabled) { transform: scale(.97); background: var(--accent-d); }
+    .submit-btn:disabled { opacity: .4; cursor: default; }
 
     /* Spinner */
     .spinner {
-      width: 20px; height: 20px; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
       animation: spin .6s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Error msg */
-    .error-msg {
-      text-align: center; font-size: 13px; font-weight: 600;
-      color: var(--danger); margin-top: 10px;
-    }
+    .error-msg { text-align: center; font-size: 13px; font-weight: 600; color: var(--danger); margin-top: 8px; }
 
-    /* Shake */
     @keyframes shake {
       0%,100% { transform: translateX(0); }
-      20%,60% { transform: translateX(-5px); }
-      40%,80% { transform: translateX(5px); }
+      20%,60%  { transform: translateX(-5px); }
+      40%,80%  { transform: translateX(5px); }
     }
-    .shake { animation: shake .4s ease; }
+    .shake { animation: shake .35s ease; }
 
-    /* Slide up */
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .slide-up { animation: slideUp .45s cubic-bezier(.22,1,.36,1) forwards; }
-
-    .spacer { height: 32px; }
+    .spacer { height: 28px; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
   <header class="header">
     <div class="header-inner">
-      <div>
-        <div class="header-shop" id="shop-label">Загрузка...</div>
+      <div class="header-text">
+        <div class="header-shop" id="shop-label">...</div>
         <div class="header-title">Оставьте отзыв</div>
       </div>
-      <div class="header-counter">
-        <div class="header-counter-label">заполнено</div>
-        <div class="header-counter-val">
-          <span id="done-count" style="color:#fff">0</span>
-          <span> / <span id="total-count">0</span></span>
+      <div class="header-right">
+        <div class="header-counter">
+          <div class="header-counter-val">
+            <span id="done-count">0</span><small> / <span id="total-count">0</span></small>
+          </div>
         </div>
+        <button class="theme-btn" onclick="toggleTheme()" aria-label="Сменить тему" id="theme-btn">
+          <!-- moon icon (shown in dark mode) -->
+          <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
+          </svg>
+          <!-- sun icon (shown in light mode) -->
+          <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
       </div>
     </div>
-    <div class="progress-track">
-      <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+    <div class="progress-wrap">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+      </div>
     </div>
   </header>
 
-  <!-- Cards -->
   <main class="main" id="cards-container"></main>
 
-  <!-- Submit -->
-  <div class="submit-section" id="submit-section">
-    <div class="submit-hint">
-      <div class="hint-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  <div class="submit-wrap" id="submit-section">
+    <div class="info-card">
+      <div class="info-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
         </svg>
       </div>
-      <div class="hint-text">Поинты начисляются сразу. Чем подробнее отзыв — тем больше поинтов.</div>
+      <div class="info-text">Поинты начисляются сразу. Чем подробнее — тем больше.</div>
     </div>
 
-    <label class="terms-label" id="terms-label">
+    <label class="terms-row" id="terms-label">
       <input type="checkbox" class="terms-cb" id="terms-cb">
-      <div class="terms-box">
+      <div class="chk-box">
         <svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
         </svg>
@@ -395,75 +394,81 @@
   <div class="spacer"></div>
 
   <script>
-    // ── Params ────────────────────────────────────────────────────
+    // ── Theme ──────────────────────────────────────────────────
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    updateThemeIcon(saved);
+
+    function toggleTheme() {
+      const cur  = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateThemeIcon(next);
+    }
+    function updateThemeIcon(theme) {
+      document.getElementById('icon-moon').style.display = theme === 'dark' ? 'block' : 'none';
+      document.getElementById('icon-sun').style.display  = theme === 'light' ? 'block' : 'none';
+    }
+
+    // ── Params ────────────────────────────────────────────────
     const params   = new URLSearchParams(window.location.search);
     const shopId   = params.get('shop') || '';
     const rawItems = params.get('items') || 'Товар 1,Товар 2';
     const items    = rawItems.split(',').map(s => s.trim()).filter(Boolean);
 
-    // ── State ─────────────────────────────────────────────────────
     const state = {};
-    items.forEach((name, i) => {
-      state[i] = { name, stars: 0, text: '', photo: null, done: false };
-    });
+    items.forEach((name, i) => { state[i] = { name, stars: 0, text: '', photo: null, done: false }; });
 
     document.getElementById('shop-label').textContent  = shopId ? `Магазин #${shopId}` : 'Ваш заказ';
     document.getElementById('total-count').textContent = items.length;
 
-    // ── Progress ──────────────────────────────────────────────────
+    // ── Progress ──────────────────────────────────────────────
     function updateProgress() {
       const done = Object.values(state).filter(s => s.done).length;
-      document.getElementById('done-count').textContent = done;
-      document.getElementById('progress-bar').style.width =
-        items.length ? `${(done / items.length) * 100}%` : '0%';
+      document.getElementById('done-count').textContent      = done;
+      document.getElementById('progress-bar').style.width   = items.length ? `${(done / items.length) * 100}%` : '0%';
 
       if (done === items.length) {
         const sec = document.getElementById('submit-section');
         if (sec.style.display === 'none') {
           sec.style.display = 'block';
-          sec.classList.add('slide-up');
-          setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+          sec.classList.add('show');
+          setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
         }
       }
     }
 
     function checkDone(idx) {
-      const s    = state[idx];
-      const prev = s.done;
+      const s = state[idx];
+      const was = s.done;
       s.done = s.stars > 0 && s.text.trim().length >= 10;
-      const card = document.getElementById(`card-${idx}`);
-      if (s.done !== prev) card.classList.toggle('done', s.done);
+      if (s.done !== was) document.getElementById(`card-${idx}`).classList.toggle('done', s.done);
       updateProgress();
     }
 
-    // ── Stars ─────────────────────────────────────────────────────
+    // ── Stars ─────────────────────────────────────────────────
     function setStars(idx, val) {
       state[idx].stars = val;
       for (let i = 1; i <= 5; i++) {
-        const btn = document.getElementById(`star-${idx}-${i}`);
-        btn.classList.toggle('lit', i <= val);
-        if (i <= val) {
-          btn.style.transform = `scale(${1 + (val - i) * 0.02 + 0.06})`;
-        } else {
-          btn.style.transform = '';
-        }
+        document.getElementById(`star-${idx}-${i}`).classList.toggle('lit', i <= val);
       }
       checkDone(idx);
     }
 
-    // ── Text ──────────────────────────────────────────────────────
+    // ── Text ──────────────────────────────────────────────────
     function onTextInput(idx, el) {
       state[idx].text = el.value;
-      const len     = el.value.trim().length;
-      const counter = document.getElementById(`counter-${idx}`);
-      counter.textContent = len;
-      counter.style.color = len >= 10 ? '#32D74B' : len > 0 ? '#FF9A3C' : 'rgba(255,255,255,0.28)';
+      const len = el.value.trim().length;
+      const c   = document.getElementById(`cnt-${idx}`);
+      c.textContent = len;
+      c.style.color = len >= 10 ? 'var(--accent)' : len > 0 ? 'var(--star)' : 'var(--text3)';
       el.style.height = 'auto';
       el.style.height = el.scrollHeight + 'px';
       checkDone(idx);
     }
 
-    // ── Photo ─────────────────────────────────────────────────────
+    // ── Photo ─────────────────────────────────────────────────
     function onPhoto(idx, file) {
       if (!file || !file.type.startsWith('image/')) return;
       state[idx].photo = file;
@@ -471,94 +476,86 @@
       reader.onload = e => {
         const img  = document.getElementById(`preview-${idx}`);
         const hint = document.getElementById(`hint-${idx}`);
-        img.src           = e.target.result;
-        img.style.display = 'block';
+        img.src = e.target.result; img.style.display = 'block';
         hint.style.display = 'none';
       };
       reader.readAsDataURL(file);
     }
 
-    // ── Render ────────────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────
     function renderCards() {
       const container = document.getElementById('cards-container');
       container.innerHTML = '';
 
       items.forEach((item, idx) => {
         const card = document.createElement('div');
-        card.id        = `card-${idx}`;
+        card.id = `card-${idx}`;
         card.className = 'card';
-        card.style.animationDelay = `${idx * 80}ms`;
+        card.style.animationDelay = `${idx * 70}ms`;
 
         card.innerHTML = `
           <div class="card-head">
             <div class="card-num">${idx + 1}</div>
-            <div class="card-head-text">
-              <div class="card-pos-label">позиция ${idx + 1}</div>
+            <div style="flex:1;min-width:0">
+              <div class="card-label">позиция ${idx + 1}</div>
               <div class="card-name">${item}</div>
             </div>
-            <div class="card-done-badge">
-              <svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24">
+            <div class="card-check">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
               </svg>
             </div>
           </div>
 
-          <div class="divider"></div>
+          <div class="sep"></div>
 
-          <div class="stars-section">
-            <div class="section-label">Ваша оценка</div>
+          <div class="stars-wrap">
+            <div class="field-label">Оценка</div>
             <div class="stars-row">
               ${[1,2,3,4,5].map(i => `
                 <button class="star-btn" id="star-${idx}-${i}" onclick="setStars(${idx},${i})" aria-label="${i} звезд">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
+                  <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 </button>
               `).join('')}
             </div>
           </div>
 
-          <div class="divider"></div>
+          <div class="sep"></div>
 
-          <div class="text-section" style="padding-top:16px">
+          <div class="text-wrap" style="padding-top:14px">
             <div class="text-meta">
-              <div class="section-label" style="margin-bottom:0">Комментарий</div>
+              <div class="field-label" style="margin-bottom:0">Комментарий</div>
               <div>
-                <span class="char-count" id="counter-${idx}">0</span>
-                <span style="font-size:11px;color:rgba(255,255,255,0.28)"> симв.</span>
+                <span class="char-cnt" id="cnt-${idx}">0</span>
+                <span style="font-size:11px;color:var(--text3)"> симв.</span>
               </div>
             </div>
             <div style="height:10px"></div>
-            <textarea
-              class="review-textarea"
-              id="text-${idx}"
-              rows="3"
-              placeholder="Расскажите подробнее — вкус, подача, атмосфера, что понравилось или нет..."
-              oninput="onTextInput(${idx}, this)"
-            ></textarea>
+            <textarea class="review-ta" rows="3"
+              placeholder="Расскажите подробнее — вкус, подача, атмосфера..."
+              oninput="onTextInput(${idx}, this)"></textarea>
           </div>
 
-          <div class="divider"></div>
+          <div class="sep"></div>
 
-          <div class="photo-section" style="padding-top:16px">
-            <div class="section-label">Фото</div>
+          <div class="photo-wrap" style="padding-top:14px">
+            <div class="field-label">Фото</div>
             <div class="photo-zone"
-                 id="zone-${idx}"
                  onclick="document.getElementById('file-${idx}').click()"
-                 ondragover="event.preventDefault();this.style.borderColor='var(--accent1)'"
+                 ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
                  ondragleave="this.style.borderColor=''"
                  ondrop="event.preventDefault();this.style.borderColor='';onPhoto(${idx},event.dataTransfer.files[0])">
               <div class="photo-hint" id="hint-${idx}">
-                <div class="photo-icon">
+                <div class="photo-ico">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                   </svg>
                 </div>
-                <div class="photo-hint-text">
+                <div class="photo-hint-t">
                   <p>Добавить фото</p>
                   <p>JPG, PNG до 10 МБ</p>
                 </div>
-                <div class="photo-bonus">+10 pts</div>
+                <div class="photo-badge">+10 pts</div>
               </div>
               <img class="photo-preview" id="preview-${idx}" alt="Фото">
             </div>
@@ -566,31 +563,25 @@
                    style="display:none" onchange="onPhoto(${idx},this.files[0])">
           </div>
         `;
-
         container.appendChild(card);
       });
     }
 
-    // ── Submit ────────────────────────────────────────────────────
+    // ── Submit ────────────────────────────────────────────────
     async function handleSubmit() {
       if (!document.getElementById('terms-cb').checked) {
         const el = document.getElementById('terms-label');
-        el.classList.remove('shake');
-        void el.offsetWidth;
-        el.classList.add('shake');
-        el.style.borderColor = 'rgba(255,69,58,0.5)';
+        el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+        el.style.borderColor = 'var(--danger)';
         setTimeout(() => { el.style.borderColor = ''; el.classList.remove('shake'); }, 1500);
         return;
       }
-
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
       btn.innerHTML = `<div class="spinner"></div><span>Отправляем...</span>`;
-
       try {
         const res  = await fetch('/review', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             shop: shopId,
             reviews: Object.values(state).map(s => ({
@@ -601,21 +592,18 @@
         const json = await res.json();
         if (json.success) {
           window.location.href = `/thanks.html?points=${json.data?.points ?? 0}`;
-        } else {
-          throw new Error(json.error || 'Ошибка при отправке');
-        }
+        } else throw new Error(json.error || 'Ошибка при отправке');
       } catch (err) {
         btn.disabled = false;
         btn.innerHTML = 'Отправить и получить поинты';
         const msg = document.createElement('p');
-        msg.className   = 'error-msg';
+        msg.className = 'error-msg';
         msg.textContent = err.message || 'Что-то пошло не так — попробуйте ещё раз';
         btn.after(msg);
         setTimeout(() => msg.remove(), 4000);
       }
     }
 
-    // ── Init ──────────────────────────────────────────────────────
     renderCards();
     updateProgress();
   </script>
