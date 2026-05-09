@@ -489,13 +489,16 @@
       const done = Object.values(state).filter(s => s.done).length;
       document.getElementById('done-c').textContent   = done;
       document.getElementById('prog-bar').style.width = items.length ? `${done/items.length*100}%` : '0%';
+      const w = document.getElementById('submit-wrap');
       if (done === items.length) {
-        const w = document.getElementById('submit-wrap');
-        if (w.style.display === 'none') {
+        if (!w.classList.contains('show')) {
           w.style.display = 'block';
           w.classList.add('show');
           setTimeout(() => w.scrollIntoView({ behavior:'smooth', block:'nearest' }), 80);
         }
+      } else {
+        w.style.display = 'none';
+        w.classList.remove('show');
       }
     }
 
