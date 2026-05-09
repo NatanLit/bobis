@@ -14,6 +14,8 @@ router.post('/', async (req, res) => {
     const { shop, reviews, phone, email } = req.body;
     const identifier = email || phone; // prefer email from Supabase Auth
 
+    console.log('[/review] identifier:', identifier, '| shop:', shop, '| reviews:', reviews?.length);
+
     if (!Array.isArray(reviews) || reviews.length === 0) {
       return res.status(400).json({ success: false, error: 'Нет данных для отзыва' });
     }
@@ -31,12 +33,16 @@ router.post('/', async (req, res) => {
     let userId = null;
 
     if (identifier && supabase) {
-      const { data: user } = await supabase
+      const { data: user, error: userErr } = await supabase
         .from('users')
         .upsert({ phone_or_email: identifier }, { onConflict: 'phone_or_email' })
         .select('id')
         .single();
+      if (userErr) console.error('[/review] user upsert error:', userErr);
       userId = user?.id;
+      console.log('[/review] userId:', userId);
+    } else {
+      console.warn('[/review] skipped DB save — no identifier or supabase client');
     }
 
     let totalPoints = 0;
@@ -48,12 +54,9 @@ router.post('/', async (req, res) => {
       totalPoints += points;
 
       if (userId) {
-        const { data: item } = await supabase
-          .from('items')
-          .select('id')
-          .eq('name', r.item)
-          .eq('business_id', shop || null)
-          .maybeSingle();
+        let itemQ = supabase.from('items').select('id').eq('name', r.item);
+        itemQ = shop ? itemQ.eq('business_id', shop) : itemQ.is('business_id', null);
+        const { data: item } = await itemQ.maybeSingle();
 
         const itemId = item?.id || null;
 
@@ -70,14 +73,16 @@ router.post('/', async (req, res) => {
           }
         }
 
-        const { data: review } = await supabase
+        const { data: review, error: revErr } = await supabase
           .from('reviews')
           .insert({ user_id: userId, item_id: itemId, text: r.text, stars: r.stars, score, points_earned: points })
           .select('id')
           .single();
+        if (revErr) console.error('[/review] insert review error:', revErr);
 
         if (review) {
-          await supabase.from('points_log').insert({ user_id: userId, review_id: review.id, amount: points });
+          const { error: logErr } = await supabase.from('points_log').insert({ user_id: userId, review_id: review.id, amount: points });
+          if (logErr) console.error('[/review] insert points_log error:', logErr);
         }
       }
 
@@ -85,7 +90,9 @@ router.post('/', async (req, res) => {
     }
 
     if (userId && totalPoints > 0 && supabase) {
-      await supabase.rpc('increment_points', { user_id_arg: userId, amount_arg: totalPoints });
+      const { error: rpcErr } = await supabase.rpc('increment_points', { user_id_arg: userId, amount_arg: totalPoints });
+      if (rpcErr) console.error('[/review] increment_points error:', rpcErr);
+      else console.log('[/review] +', totalPoints, 'pts to user', userId);
     }
 
     return res.json({ success: true, data: { points: totalPoints, results } });

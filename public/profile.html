@@ -644,6 +644,7 @@
       try {
         const res  = await fetch('/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
         const json = await res.json();
+        console.log('[profile] /user/me response:', json);
 
         if (json.success) {
           points = json.data.points || 0;
@@ -663,9 +664,12 @@
             grouped[date].pts += r.points_earned || 0;
           });
           purchases = Object.values(grouped);
+        } else {
+          console.error('[profile] /user/me failed:', json);
+          alert('Ошибка загрузки данных профиля: ' + (json.error || 'unknown') + (json.detail ? ' — ' + json.detail : ''));
         }
       } catch (e) {
-        console.warn('Failed to load user data:', e);
+        console.error('[profile] fetch error:', e);
       }
 
       renderAll();
