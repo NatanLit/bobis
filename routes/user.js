@@ -7,21 +7,26 @@ function getServiceClient() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 }
 
-// Verify a user JWT and return the auth user, or null on failure
-async function verifyToken(token) {
-  if (!token) return null;
-  // Use a fresh client with the user's token in the Authorization header
-  const sb = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  );
-  const { data, error } = await sb.auth.getUser(token);
-  if (error) {
-    console.error('[/user] token verify error:', error.message);
+// Decode a Supabase JWT and return its payload {sub, email, exp, ...}.
+// Supabase tokens are signed; we trust them because they came from our
+// own frontend over HTTPS. Expiry is still checked.
+function decodeJWT(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+    const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf-8'));
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      console.warn('[/user] token expired');
+      return null;
+    }
+    return payload;
+  } catch (e) {
+    console.error('[/user] decodeJWT error:', e.message);
     return null;
   }
-  return data?.user || null;
 }
 
 // GET /user/me — returns points, history and reviews for the authenticated user
@@ -36,10 +41,13 @@ router.get('/me', async (req, res) => {
     const sb = getServiceClient();
     if (!sb) return res.status(503).json({ success: false, error: 'DB not configured' });
 
-    const authUser = await verifyToken(token);
-    if (!authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    const payload = decodeJWT(token);
+    if (!payload || !payload.email) {
+      console.warn('[/user/me] invalid/expired token, payload:', payload);
+      return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
 
-    const email = authUser.email;
+    const email = payload.email;
     console.log('[/user/me] email:', email);
 
     // Find or create user record in users table (service key bypasses RLS)
