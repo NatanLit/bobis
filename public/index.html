@@ -636,7 +636,10 @@
           }),
         });
         const json = await res.json();
-        if (json.success) location.href = `/thanks.html?points=${json.data?.points??0}`;
+        if (json.success) {
+          const r = encodeURIComponent(JSON.stringify(json.data?.results ?? []));
+          location.href = `/thanks.html?points=${json.data?.points??0}&results=${r}`;
+        }
         else throw new Error(json.error || 'Ошибка при отправке');
       } catch(err) {
         btn.disabled = false;

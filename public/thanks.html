@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+  <title>Поинты начислены!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --accent:    #FF6B35;
+      --accent-d:  #E85A26;
+      --accent-10: rgba(255,107,53,.1);
+      --accent-20: rgba(255,107,53,.2);
+      --success:   #22C55E;
+      --r:         22px;
+      --r-btn:     18px;
+    }
+    [data-theme="dark"] {
+      --bg:    #141210; --card: #1E1B17; --card-b: #2A2520;
+      --text1: #F5F0EB; --text2: #7A7068; --sep: #252118;
+    }
+    [data-theme="light"] {
+      --bg:    #FAF8F5; --card: #FFFFFF; --card-b: #EAE6DF;
+      --text1: #1A1612; --text2: #7A7068; --sep: #F0EDE8;
+    }
+
+    body {
+      font-family: 'Outfit', system-ui, sans-serif;
+      background: var(--bg); color: var(--text1);
+      min-height: 100dvh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px 16px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 360px; width: 100%; text-align: center; }
+
+    /* Confetti ring */
+    .ring {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #FFB347);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      box-shadow: 0 8px 32px rgba(255,107,53,.35);
+      animation: pop .5s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .ring svg { width: 48px; height: 48px; color: #fff; }
+
+    .points-num {
+      font-size: 72px; font-weight: 900; letter-spacing: -.04em;
+      color: var(--accent); line-height: 1;
+      animation: fadeUp .45s .15s cubic-bezier(.22,1,.36,1) both;
+    }
+    .points-label {
+      font-size: 16px; font-weight: 500; color: var(--text2);
+      margin-top: 6px; margin-bottom: 28px;
+      animation: fadeUp .45s .2s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    .card {
+      background: var(--card); border: 1px solid var(--card-b);
+      border-radius: var(--r); padding: 20px;
+      margin-bottom: 12px; text-align: left;
+      animation: fadeUp .45s .28s cubic-bezier(.22,1,.36,1) both;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 20px rgba(0,0,0,.07);
+    }
+    .card-title { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); margin-bottom: 14px; }
+    .results-list { display: flex; flex-direction: column; gap: 10px; }
+    .result-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .result-name { font-size: 14px; font-weight: 600; color: var(--text1); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .result-pts { font-size: 13px; font-weight: 700; color: var(--success); white-space: nowrap; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+    .btn-profile {
+      width: 100%; height: 52px; border: none; border-radius: var(--r-btn);
+      background: var(--accent); color: #fff;
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; text-decoration: none;
+      box-shadow: 0 4px 20px rgba(255,107,53,.3);
+      transition: transform .15s, background .15s;
+      animation: fadeUp .45s .35s cubic-bezier(.22,1,.36,1) both;
+    }
+    .btn-profile:active { transform: scale(.97); background: var(--accent-d); }
+
+    .btn-new {
+      width: 100%; height: 44px; border: 1px solid var(--card-b); border-radius: var(--r-btn);
+      background: transparent; color: var(--text2);
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; text-decoration: none; margin-top: 8px;
+      transition: color .15s, border-color .15s;
+      animation: fadeUp .45s .4s cubic-bezier(.22,1,.36,1) both;
+    }
+    .btn-new:active { color: var(--text1); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+    </div>
+
+    <div class="points-num" id="pts-num">0</div>
+    <div class="points-label">поинтов начислено</div>
+
+    <div class="card" id="results-card" style="display:none">
+      <div class="card-title">Детали начисления</div>
+      <div class="results-list" id="results-list"></div>
+    </div>
+
+    <a href="/profile.html" class="btn-profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      Смотреть баланс
+    </a>
+    <a href="/" class="btn-new">Оставить ещё отзыв</a>
+  </div>
+
+  <script>
+    const p = new URLSearchParams(location.search);
+    const points = parseInt(p.get('points') || '0');
+
+    document.getElementById('pts-num').textContent = points;
+
+    // Save to localStorage for profile page
+    const prev = parseInt(localStorage.getItem('user_points') || '0');
+    localStorage.setItem('user_points', prev + points);
+
+    // Save history entry
+    if (points > 0) {
+      const history = JSON.parse(localStorage.getItem('bonus_history') || '[]');
+      history.unshift({
+        type: 'plus',
+        label: 'За отзыв',
+        amount: points,
+        date: new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }),
+      });
+      localStorage.setItem('bonus_history', JSON.stringify(history));
+    }
+
+    // Show per-item results if passed
+    try {
+      const results = JSON.parse(p.get('results') || 'null');
+      if (results && results.length > 1) {
+        const card = document.getElementById('results-card');
+        const list = document.getElementById('results-list');
+        list.innerHTML = results.map(r =>
+          `<div class="result-row">
+            <span class="result-name">${r.item}</span>
+            <span class="result-pts">+${r.points} pts</span>
+          </div>`
+        ).join('');
+        card.style.display = 'block';
+      }
+    } catch {}
+  </script>
+</body>
+</html>
