@@ -29,6 +29,37 @@ function decodeJWT(token) {
   }
 }
 
+// GET /user/health — checks Supabase connectivity and env config
+router.get('/health', async (req, res) => {
+  const env = {
+    has_url: !!process.env.SUPABASE_URL,
+    url_host: process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).host : null,
+    has_key: !!process.env.SUPABASE_KEY,
+    key_prefix: process.env.SUPABASE_KEY ? process.env.SUPABASE_KEY.slice(0, 12) + '...' : null,
+  };
+  const sb = getServiceClient();
+  if (!sb) return res.json({ ok: false, env, reason: 'getServiceClient returned null' });
+
+  try {
+    const { data, error } = await sb.from('users').select('id', { count: 'exact', head: true });
+    if (error) {
+      return res.json({
+        ok: false, env, supabase_error: {
+          message: error.message, code: error.code, details: error.details, hint: error.hint,
+        }
+      });
+    }
+    return res.json({ ok: true, env, users_table_reachable: true });
+  } catch (e) {
+    return res.json({
+      ok: false, env, exception: {
+        name: e.name, message: e.message,
+        cause: e.cause ? { name: e.cause.name, message: e.cause.message, code: e.cause.code } : null,
+      }
+    });
+  }
+});
+
 // GET /user/me — returns points, history and reviews for the authenticated user
 router.get('/me', async (req, res) => {
   try {
@@ -59,7 +90,10 @@ router.get('/me', async (req, res) => {
 
     if (userErr) {
       console.error('[/user/me] users upsert error:', userErr);
-      return res.status(500).json({ success: false, error: 'DB error', detail: userErr.message });
+      return res.status(500).json({
+        success: false, error: 'DB error',
+        detail: `${userErr.message} | code: ${userErr.code || 'n/a'} | hint: ${userErr.hint || 'n/a'}`,
+      });
     }
     if (!dbUser) {
       return res.json({ success: true, data: { points: 0, history: [], reviews: [] } });
