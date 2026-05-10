@@ -132,7 +132,21 @@
     const p = new URLSearchParams(location.search);
     const points = parseInt(p.get('points') || '0');
 
-    document.getElementById('pts-num').textContent = points;
+    // Spring count-up animation
+    (function animateTo(el, to, duration = 1.6) {
+      const damping = 20 + 40 * (1/duration), stiffness = 100 * (1/duration), dt = 0.016;
+      let cur = 0, vel = 0;
+      el.textContent = '0';
+      const tick = () => {
+        const d = to - cur;
+        vel += (d * stiffness - vel * damping) * dt;
+        cur += vel * dt;
+        el.textContent = Math.round(cur);
+        if (Math.abs(d) > 0.01 || Math.abs(vel) > 0.01) requestAnimationFrame(tick);
+        else el.textContent = to;
+      };
+      setTimeout(() => requestAnimationFrame(tick), 250);
+    })(document.getElementById('pts-num'), points);
 
     // Save to localStorage for profile page
     const prev = parseInt(localStorage.getItem('user_points') || '0');

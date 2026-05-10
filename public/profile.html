@@ -501,12 +501,110 @@
       void el.offsetWidth; // reflow to restart animation
       el.classList.add('view-enter');
       el.scrollTop = 0;
+      if (id === 'view-bonus')     replayBonusCounters();
+      if (id === 'view-purchases') replayPurchaseCounters();
     }
     function closeView(id) {
       document.getElementById(id).classList.add('hidden');
     }
     function goBack() {
       window.history.back();
+    }
+
+    // ── CountUp animation (spring physics, vanilla port of vue-bits) ──
+    function animateCount(el, to, { duration = 1.2, delay = 0, separator = '' } = {}) {
+      if (!el) return;
+      // Cancel any in-flight animation on this element
+      if (el._countRaf) cancelAnimationFrame(el._countRaf);
+      const damping   = 20 + 40 * (1 / duration);
+      const stiffness = 100 * (1 / duration);
+      const dt = 0.016;
+      let current = 0, velocity = 0;
+      const fmt = v => {
+        const n = Math.round(v);
+        return separator
+          ? n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, separator)
+          : n.toString();
+      };
+      el.textContent = fmt(0);
+      const tick = () => {
+        const disp = to - current;
+        velocity += (disp * stiffness - velocity * damping) * dt;
+        current  += velocity * dt;
+        el.textContent = fmt(current);
+        if (Math.abs(disp) > 0.01 || Math.abs(velocity) > 0.01) {
+          el._countRaf = requestAnimationFrame(tick);
+        } else {
+          el.textContent = fmt(to);
+          el._countRaf = null;
+        }
+      };
+      setTimeout(() => { el._countRaf = requestAnimationFrame(tick); }, delay * 1000);
+    }
+
+    // Animate every [data-count] inside container, with optional stagger
+    function animateCountsIn(container, { stagger = 0.05, duration = 1 } = {}) {
+      if (!container) return;
+      const els = container.querySelectorAll('[data-count]');
+      els.forEach((el, i) => {
+        const to = parseFloat(el.getAttribute('data-count')) || 0;
+        const prefix = el.getAttribute('data-prefix') || '';
+        // Wrap target with prefix span if needed
+        animateCount(el, to, { duration, delay: i * stagger });
+        if (prefix) el.dataset.prefixApplied = '1';
+      });
+    }
+
+    function replayBonusCounters() {
+      const bp = document.getElementById('bonus-pts');
+      animateCount(bp, points, { duration: 1.4 });
+      // Stagger animate each history amount in the bonus view
+      const list = document.getElementById('bonus-history');
+      const items = list?.querySelectorAll('.hist-amount[data-count]') || [];
+      items.forEach((el, i) => {
+        const to = parseFloat(el.getAttribute('data-count')) || 0;
+        const sign = el.getAttribute('data-sign') || '+';
+        // We need to keep the sign and ' pts' suffix during the count
+        if (el._countRaf) cancelAnimationFrame(el._countRaf);
+        const damping = 20 + 40, stiffness = 100, dt = 0.016;
+        let current = 0, velocity = 0;
+        const render = v => `${sign}${Math.round(v)} pts`;
+        el.textContent = render(0);
+        const tick = () => {
+          const disp = to - current;
+          velocity += (disp * stiffness - velocity * damping) * dt;
+          current  += velocity * dt;
+          el.textContent = render(current);
+          if (Math.abs(disp) > 0.01 || Math.abs(velocity) > 0.01) {
+            el._countRaf = requestAnimationFrame(tick);
+          } else {
+            el.textContent = render(to);
+            el._countRaf = null;
+          }
+        };
+        setTimeout(() => { el._countRaf = requestAnimationFrame(tick); }, i * 60);
+      });
+    }
+
+    function replayPurchaseCounters() {
+      document.querySelectorAll('#purchases-body .purchase-pts[data-count]').forEach((el, i) => {
+        const to = parseFloat(el.getAttribute('data-count')) || 0;
+        if (el._countRaf) cancelAnimationFrame(el._countRaf);
+        const damping = 20 + 40, stiffness = 100, dt = 0.016;
+        let current = 0, velocity = 0;
+        const render = v => `+${Math.round(v)} pts`;
+        el.textContent = render(0);
+        const tick = () => {
+          const disp = to - current;
+          velocity += (disp * stiffness - velocity * damping) * dt;
+          current  += velocity * dt;
+          el.textContent = render(current);
+          if (Math.abs(disp) > 0.01 || Math.abs(velocity) > 0.01) {
+            el._countRaf = requestAnimationFrame(tick);
+          } else { el.textContent = render(to); el._countRaf = null; }
+        };
+        setTimeout(() => { el._countRaf = requestAnimationFrame(tick); }, i * 80);
+      });
     }
 
     // ── Supabase ─────────────────────────────────────────────
@@ -537,10 +635,10 @@
 
     // ── Render ───────────────────────────────────────────────
     function renderAll() {
-      // Main view
-      document.getElementById('main-pts').textContent    = points;
-      document.getElementById('bonus-pts').textContent   = points;
-      document.getElementById('main-pcount').textContent = purchases.length;
+      // Main view — animated counters
+      animateCount(document.getElementById('main-pts'),    points,           { duration: 1.2 });
+      animateCount(document.getElementById('bonus-pts'),   points,           { duration: 1.4 });
+      animateCount(document.getElementById('main-pcount'), purchases.length, { duration: 0.9 });
 
       // Spend carousel
       document.getElementById('spend-scroll').innerHTML = spendMenu.map((item, i) => `
@@ -570,7 +668,7 @@
                 <div class="hist-label-main">${h.label}</div>
                 <div class="hist-label-date">${h.date}</div>
               </div>
-              <div class="hist-amount ${h.type}">${h.type==='plus'?'+':'−'}${h.amount} pts</div>
+              <div class="hist-amount ${h.type}" data-count="${h.amount}" data-sign="${h.type==='plus'?'+':'−'}">${h.type==='plus'?'+':'−'}${h.amount} pts</div>
             </div>`).join('')
         : `<div class="empty-state">
             <div class="empty-state-ico">
@@ -601,7 +699,7 @@
                 <div class="purchase-date">${p.date}</div>
                 <div class="purchase-shop">${p.shop}</div>
               </div>
-              <div class="purchase-pts">+${p.pts} pts</div>
+              <div class="purchase-pts" data-count="${p.pts}">+${p.pts} pts</div>
             </div>
             <div class="purchase-sep"></div>
             <div class="purchase-items-list">
