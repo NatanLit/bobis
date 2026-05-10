@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
+const { generateInsights } = require('../services/insights');
 
+let _sbClient = null;
 function getSupabase() {
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  if (_sbClient) return _sbClient;
+  _sbClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  return _sbClient;
 }
+
+// In-memory insights cache — survives until Railway restart
+const insightsCache = { data: null, generatedAt: 0, reviewIds: [] };
+const INSIGHTS_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 function checkAdminKey(req, res, next) {
   const key = req.headers['x-admin-key'] || req.query.key;
@@ -107,6 +115,61 @@ router.delete('/products/:id', checkAdminKey, async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     console.error('DELETE /admin/products error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── AI Insights ──────────────────────────────────────────
+// GET /admin/insights — returns cached or fresh insights
+//    ?force=1 → bypass cache and regenerate
+router.get('/insights', checkAdminKey, async (req, res) => {
+  try {
+    const force = req.query.force === '1';
+    const cacheAge = Date.now() - insightsCache.generatedAt;
+    const cacheValid = insightsCache.data && cacheAge < INSIGHTS_TTL_MS;
+
+    if (cacheValid && !force) {
+      return res.json({
+        success: true,
+        cached: true,
+        generated_at: insightsCache.generatedAt,
+        age_ms: cacheAge,
+        ...insightsCache.data,
+      });
+    }
+
+    const sb = getSupabase();
+    const { data: reviews, error } = await sb
+      .from('reviews')
+      .select('text, stars, item_name, items(name), created_at')
+      .order('created_at', { ascending: false })
+      .limit(60);
+    if (error) throw error;
+
+    if (!reviews || !reviews.length) {
+      return res.json({
+        success: true,
+        cached: false,
+        generated_at: Date.now(),
+        insights: [],
+        reviewCount: 0,
+        empty: true,
+      });
+    }
+
+    const result = await generateInsights(reviews);
+    insightsCache.data = result;
+    insightsCache.generatedAt = Date.now();
+
+    return res.json({
+      success: true,
+      cached: false,
+      generated_at: insightsCache.generatedAt,
+      age_ms: 0,
+      ...result,
+    });
+  } catch (err) {
+    console.error('GET /admin/insights error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
