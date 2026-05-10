@@ -75,7 +75,15 @@ router.post('/', async (req, res) => {
 
         const { data: review, error: revErr } = await supabase
           .from('reviews')
-          .insert({ user_id: userId, item_id: itemId, text: r.text, stars: r.stars, score, points_earned: points })
+          .insert({
+            user_id: userId,
+            item_id: itemId,
+            item_name: (r.item || '').trim() || null,
+            text: r.text,
+            stars: r.stars,
+            score,
+            points_earned: points,
+          })
           .select('id')
           .single();
         if (revErr) console.error('[/review] insert review error:', revErr);

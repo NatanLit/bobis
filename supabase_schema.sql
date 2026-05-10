@@ -28,6 +28,7 @@ create table if not exists reviews (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid references users(id) on delete cascade,
   item_id       uuid references items(id) on delete set null,
+  item_name     text,                    -- name from QR code, used when item_id is null
   text          text not null,
   stars         smallint check (stars between 1 and 5),
   photo_url     text,
@@ -35,6 +36,9 @@ create table if not exists reviews (
   points_earned int not null default 0,
   created_at    timestamptz default now()
 );
+
+-- Migration if reviews table already exists without item_name:
+alter table reviews add column if not exists item_name text;
 
 -- Rate-limit: один отзыв на пару (user, item)
 create unique index if not exists reviews_user_item_unique

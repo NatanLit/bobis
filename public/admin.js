@@ -23,7 +23,7 @@ async function fetchReviews() {
     liveReviews = json.data.map(r => ({
       id:       r.id,
       name:     r.users?.phone_or_email || 'Гость',
-      product:  r.items?.name || 'Неизвестный товар',
+      product:  r.item_name || r.items?.name || 'Неизвестный товар',
       stars:    r.stars,
       score:    r.score,
       text:     r.text,

@@ -108,12 +108,12 @@ router.get('/me', async (req, res) => {
     // Run history + reviews queries in parallel — saves ~200-400ms vs sequential
     const [{ data: logs, error: logsErr }, { data: reviews, error: revErr }] = await Promise.all([
       sb.from('points_log')
-        .select('amount, created_at, reviews(text, items(name))')
+        .select('amount, created_at, reviews(text, item_name, items(name))')
         .eq('user_id', dbUser.id)
         .order('created_at', { ascending: false })
         .limit(30),
       sb.from('reviews')
-        .select('created_at, points_earned, stars, text, items(name)')
+        .select('created_at, points_earned, stars, text, item_name, items(name)')
         .eq('user_id', dbUser.id)
         .order('created_at', { ascending: false })
         .limit(20),
@@ -127,13 +127,14 @@ router.get('/me', async (req, res) => {
         points: dbUser.total_points || 0,
         history: (logs || []).map(l => ({
           amount:     l.amount,
-          item:       l.reviews?.items?.name || null,
+          // Prefer item_name (saved directly), fallback to joined items.name for legacy rows
+          item:       l.reviews?.item_name || l.reviews?.items?.name || null,
           created_at: l.created_at,
         })),
         reviews: (reviews || []).map(r => ({
           created_at:    r.created_at,
           points_earned: r.points_earned || 0,
-          item:          r.items?.name || 'Товар',
+          item:          r.item_name || r.items?.name || 'Товар',
           stars:         r.stars,
         })),
       },
