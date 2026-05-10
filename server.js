@@ -11,7 +11,12 @@ const userRouter   = require('./routes/user');
 const app = express();
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// extensions: ['html'] lets /admin-login work without .html
+app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+
+// Friendly admin URLs
+app.get('/admin', (req, res) => res.redirect('/admin-login.html'));
+app.get('/panel', (req, res) => res.redirect('/admin-login.html'));
 
 const ipLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
