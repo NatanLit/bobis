@@ -4,17 +4,41 @@ const { scoreReview } = require('../services/scoring');
 const { calcPoints }  = require('../services/points');
 const { createClient } = require('@supabase/supabase-js');
 
+let _client = null;
 function getSupabase() {
+  if (_client) return _client;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) return null;
-  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  _client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+  return _client;
+}
+
+const PHOTO_BUCKET = 'review-photos';
+
+async function uploadPhoto(supabase, dataUrl, userId) {
+  if (!dataUrl || typeof dataUrl !== 'string') return null;
+  const m = dataUrl.match(/^data:(image\/[a-z+]+);base64,(.+)$/i);
+  if (!m) return null;
+  try {
+    const mime = m[1];
+    const ext  = (mime.split('/')[1] || 'jpg').split('+')[0];
+    const buf  = Buffer.from(m[2], 'base64');
+    if (buf.length > 8 * 1024 * 1024) return null; // safety: cap 8 MB
+    const filename = `${userId || 'anon'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(filename, buf, { contentType: mime, upsert: false });
+    if (error) { console.error('[/review] storage upload error:', error.message); return null; }
+    const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(filename);
+    return data?.publicUrl || null;
+  } catch (e) {
+    console.error('[/review] uploadPhoto exception:', e.message);
+    return null;
+  }
 }
 
 router.post('/', async (req, res) => {
+  const t0 = Date.now();
   try {
     const { shop, reviews, phone, email } = req.body;
-    const identifier = email || phone; // prefer email from Supabase Auth
-
-    console.log('[/review] identifier:', identifier, '| shop:', shop, '| reviews:', reviews?.length);
+    const identifier = email || phone;
 
     if (!Array.isArray(reviews) || reviews.length === 0) {
       return res.status(400).json({ success: false, error: 'Нет данных для отзыва' });
@@ -40,72 +64,63 @@ router.post('/', async (req, res) => {
         .single();
       if (userErr) console.error('[/review] user upsert error:', userErr);
       userId = user?.id;
-      console.log('[/review] userId:', userId);
-    } else {
-      console.warn('[/review] skipped DB save — no identifier or supabase client');
     }
+
+    // ─── PARALLEL: score every review and upload every photo at once ───
+    const [scores, photoUrls] = await Promise.all([
+      Promise.all(reviews.map(r => scoreReview({ text: r.text, stars: r.stars }).catch(e => {
+        console.error('[/review] score error:', e.message);
+        return 50; // safe fallback
+      }))),
+      Promise.all(reviews.map(r =>
+        (r.photo && supabase) ? uploadPhoto(supabase, r.photo, userId) : Promise.resolve(null)
+      )),
+    ]);
 
     let totalPoints = 0;
     const results = [];
+    const inserts = [];
 
-    for (const r of reviews) {
-      const score = await scoreReview({ text: r.text, stars: r.stars, hasPhoto: !!r.hasPhoto });
-      const points = calcPoints(score, !!r.hasPhoto);
+    for (let i = 0; i < reviews.length; i++) {
+      const r = reviews[i];
+      const score = scores[i];
+      const photoUrl = photoUrls[i];
+      const points = calcPoints(score, !!photoUrl);
       totalPoints += points;
-
-      if (userId) {
-        // Prefer explicit item_id from QR; fall back to name lookup for legacy flows
-        let itemId = r.item_id || null;
-        if (!itemId) {
-          let itemQ = supabase.from('items').select('id').eq('name', r.item);
-          itemQ = shop ? itemQ.eq('business_id', shop) : itemQ.is('business_id', null);
-          const { data: item } = await itemQ.maybeSingle();
-          itemId = item?.id || null;
-        }
-
-        if (itemId) {
-          const { data: existing } = await supabase
-            .from('reviews')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('item_id', itemId)
-            .maybeSingle();
-
-          if (existing) {
-            return res.status(400).json({ success: false, error: `Отзыв на «${r.item}» уже оставлен` });
-          }
-        }
-
-        const { data: review, error: revErr } = await supabase
-          .from('reviews')
-          .insert({
-            user_id: userId,
-            item_id: itemId,
-            item_name: (r.item || '').trim() || null,
-            text: r.text,
-            stars: r.stars,
-            score,
-            points_earned: points,
-          })
-          .select('id')
-          .single();
-        if (revErr) console.error('[/review] insert review error:', revErr);
-
-        if (review) {
-          const { error: logErr } = await supabase.from('points_log').insert({ user_id: userId, review_id: review.id, amount: points });
-          if (logErr) console.error('[/review] insert points_log error:', logErr);
-        }
-      }
-
       results.push({ item: r.item, score, points });
+
+      if (userId && supabase) {
+        inserts.push({
+          user_id:       userId,
+          item_id:       r.item_id || null,
+          item_name:     (r.item || '').trim() || null,
+          text:          r.text,
+          stars:         r.stars,
+          score,
+          photo_url:     photoUrl,
+          points_earned: points,
+        });
+      }
     }
 
-    if (userId && totalPoints > 0 && supabase) {
-      const { error: rpcErr } = await supabase.rpc('increment_points', { user_id_arg: userId, amount_arg: totalPoints });
-      if (rpcErr) console.error('[/review] increment_points error:', rpcErr);
-      else console.log('[/review] +', totalPoints, 'pts to user', userId);
+    // ─── PARALLEL: insert all reviews + bump total points at once ───
+    if (inserts.length) {
+      const { data: insertedReviews, error: revErr } = await supabase
+        .from('reviews')
+        .insert(inserts)
+        .select('id, points_earned');
+      if (revErr) console.error('[/review] insert reviews error:', revErr);
+
+      if (insertedReviews?.length) {
+        const logs = insertedReviews.map(rv => ({ user_id: userId, review_id: rv.id, amount: rv.points_earned }));
+        await Promise.all([
+          supabase.from('points_log').insert(logs),
+          supabase.rpc('increment_points', { user_id_arg: userId, amount_arg: totalPoints }),
+        ]);
+      }
     }
 
+    console.log(`[/review] done in ${Date.now() - t0}ms, +${totalPoints}pts`);
     return res.json({ success: true, data: { points: totalPoints, results } });
   } catch (err) {
     console.error('POST /review error:', err);

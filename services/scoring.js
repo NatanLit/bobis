@@ -6,32 +6,25 @@ function getClient() {
   return client;
 }
 
-async function scoreReview({ text, stars, hasPhoto }) {
-  const prompt = `Оцени отзыв на товар/блюдо по 4 критериям. Верни ТОЛЬКО JSON без пояснений.
+const SYSTEM = 'Ты строгий оценщик отзывов. Оцениваешь содержательность, специфичность, баланс плюсов/минусов, качество текста. Возвращай только JSON.';
 
-Отзыв: "${text}"
-Оценка звёздами: ${stars}/5
-Есть фото: ${hasPhoto ? 'да' : 'нет'}
-
-Критерии (итог 0–100 без учёта фото):
-1. Длина и содержательность (25%) — не менее 20 слов осмысленного текста
-2. Специфичность (35%) — упоминает конкретные детали товара/блюда
-3. Баланс (20%) — отмечает и плюсы и минусы, не просто «всё хорошо»
-4. Качество текста (20%) — не шаблонный, не AI-generated, уникальный
-
-Верни строго:
-{"score": <число 0-100>}`;
+async function scoreReview({ text, stars }) {
+  const userMsg = `Отзыв (${stars}/5): "${text}"\nДай число 0-100 в JSON {"score":N}`;
 
   const response = await getClient().chat.completions.create({
     model: 'gpt-4o-mini',
-    max_tokens: 50,
+    max_tokens: 20,
     temperature: 0,
-    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: SYSTEM },
+      { role: 'user',   content: userMsg },
+    ],
   });
 
   const raw = response.choices[0].message.content.trim();
   const result = JSON.parse(raw);
-  return Math.min(100, Math.max(0, Math.round(result.score)));
+  return Math.min(100, Math.max(0, Math.round(result.score || 0)));
 }
 
 module.exports = { scoreReview };

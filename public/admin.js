@@ -19,6 +19,7 @@ async function fetchReviews() {
       score:    r.score,
       text:     r.text,
       time:     timeAgo(r.created_at),
+      photoUrl: r.photo_url || null,
       hasPhoto: !!r.photo_url,
       points:   r.points_earned,
     }));
@@ -273,6 +274,13 @@ function renderReviewsList(reviews, containerId, compact = false) {
         <button class="action-btn danger" onclick="if(confirm('Удалить?'))this.closest('.review-item').style.display='none'">Удалить</button>
       </div>`;
 
+    const photoThumb = r.photoUrl
+      ? `<img src="${r.photoUrl}" onclick="event.stopPropagation();openLightbox('${r.photoUrl}')" alt="фото отзыва" loading="lazy"
+           class="rounded-xl object-cover flex-shrink-0 cursor-pointer transition-transform"
+           style="width:88px;height:88px;border:1px solid var(--border)"
+           onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">`
+      : '';
+
     container.innerHTML += `
       <div class="review-item animate-fade-up" style="animation-delay:${i * 0.05}s" onclick="${compact ? "switchSection('reviews')" : ''}">
         <div class="flex gap-3">
@@ -281,7 +289,6 @@ function renderReviewsList(reviews, containerId, compact = false) {
             <div class="flex items-center justify-between mb-1">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-bold" style="color:var(--text)">${r.name}</span>
-                ${r.hasPhoto ? '<span class="text-[10px] px-1.5 py-0.5 rounded font-semibold" style="background:var(--accent-light);color:var(--accent)">📷 Фото</span>' : ''}
                 ${scoreBadge}
               </div>
               <span class="text-xs" style="color:var(--text-tertiary)">${r.time}</span>
@@ -291,6 +298,7 @@ function renderReviewsList(reviews, containerId, compact = false) {
             <p class="text-sm leading-relaxed" style="color:var(--text-secondary)">${displayText}${moreBtn}</p>
             ${actions}
           </div>
+          ${photoThumb}
         </div>
       </div>`;
   });
@@ -473,8 +481,95 @@ function qrCopy() {
 
 let qrInited = false;
 
+// ── Lightbox (фото-галерея с навигацией стрелками) ───────
+let lbPhotos = [];
+let lbIndex  = 0;
+
+function openLightbox(url) {
+  // Collect all photos from current liveReviews in display order
+  lbPhotos = liveReviews.filter(r => r.photoUrl).map(r => ({
+    url: r.photoUrl,
+    user: r.name,
+    product: r.product,
+    text: r.text,
+    stars: r.stars,
+  }));
+  lbIndex = Math.max(0, lbPhotos.findIndex(p => p.url === url));
+  if (lbIndex < 0) lbIndex = 0;
+  renderLightbox();
+}
+
+function closeLightbox() {
+  const el = document.getElementById('lightbox');
+  if (el) el.remove();
+  document.removeEventListener('keydown', lbKeydown);
+}
+
+function lbNav(delta) {
+  if (!lbPhotos.length) return;
+  lbIndex = (lbIndex + delta + lbPhotos.length) % lbPhotos.length;
+  renderLightbox();
+}
+
+function lbKeydown(e) {
+  if (e.key === 'Escape')    closeLightbox();
+  if (e.key === 'ArrowLeft') lbNav(-1);
+  if (e.key === 'ArrowRight') lbNav(1);
+}
+
+function renderLightbox() {
+  let el = document.getElementById('lightbox');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'lightbox';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease forwards';
+    el.onclick = e => { if (e.target === el) closeLightbox(); };
+    document.body.appendChild(el);
+    document.addEventListener('keydown', lbKeydown);
+  }
+  const p = lbPhotos[lbIndex];
+  el.innerHTML = `
+    <button onclick="closeLightbox()" style="position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">×</button>
+    ${lbPhotos.length > 1 ? `
+      <button onclick="lbNav(-1)" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <button onclick="lbNav(1)" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2" onmouseover="this.style.background='rgba(255,255,255,.2)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </button>
+    ` : ''}
+    <div style="max-width:90vw;max-height:90vh;display:flex;flex-direction:column;align-items:center;gap:16px">
+      <img src="${p.url}" style="max-width:90vw;max-height:75vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div style="text-align:center;color:#fff;max-width:600px">
+        <div style="font-size:13px;opacity:.7;margin-bottom:4px">${p.user} · ${p.product} · ${'★'.repeat(p.stars)}</div>
+        <div style="font-size:14px;line-height:1.5;opacity:.85">${p.text}</div>
+        ${lbPhotos.length > 1 ? `<div style="font-size:12px;opacity:.5;margin-top:10px">${lbIndex + 1} / ${lbPhotos.length}</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ── Auto-refresh ─────────────────────────────────────────
+let autoRefreshTimer = null;
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(async () => {
+    if (document.hidden) return; // pause when tab not visible
+    const oldCount = liveReviews.length;
+    await Promise.all([fetchReviews(), fetchProducts()]);
+    if (liveReviews.length !== oldCount) {
+      // Re-render only when something changed
+      initDashboard();
+      if (currentSection === 'reviews')  renderReviewsList(liveReviews, 'reviews-full-list', false);
+      if (currentSection === 'products') renderProductsGrid();
+      if (liveReviews.length > oldCount) showToast(`+${liveReviews.length - oldCount} новых отзыва`, 'success');
+    }
+  }, 15000);
+}
+
 // ── Init ──────────────────────────────────────────────────
 Promise.all([fetchReviews(), fetchProducts()]).then(() => {
   initDashboard();
   switchSection('dashboard');
+  startAutoRefresh();
 });

@@ -602,16 +602,32 @@
     }
 
     // ── Photo ────────────────────────────────────────────────
+    // Compress and downsize before storing — keeps payload small
     function onPhoto(i, file) {
       if (!file?.type.startsWith('image/')) return;
-      state[i].photo = file;
-      const r = new FileReader();
-      r.onload = e => {
-        const img  = document.getElementById(`img-${i}`);
-        const hint = document.getElementById(`hint-${i}`);
-        img.src = e.target.result; img.style.display = 'block'; hint.style.display = 'none';
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          // Resize to max 1280px on longest side, encode as JPEG q=0.82
+          const MAX = 1280;
+          const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          state[i].photo = dataUrl; // base64 string ready for the server
+          const previewEl = document.getElementById(`img-${i}`);
+          const hintEl    = document.getElementById(`hint-${i}`);
+          previewEl.src = dataUrl;
+          previewEl.style.display = 'block';
+          hintEl.style.display = 'none';
+        };
+        img.src = e.target.result;
       };
-      r.readAsDataURL(file);
+      reader.readAsDataURL(file);
     }
 
     // ── Render cards ─────────────────────────────────────────
@@ -707,7 +723,13 @@
           body: JSON.stringify({
             shop,
             email: _userEmail,
-            reviews: Object.values(state).map(s => ({ item:s.name, item_id:s.id || null, stars:s.stars, text:s.text, hasPhoto:!!s.photo })),
+            reviews: Object.values(state).map(s => ({
+              item:    s.name,
+              item_id: s.id || null,
+              stars:   s.stars,
+              text:    s.text,
+              photo:   s.photo || null, // base64 dataURL or null
+            })),
           }),
         });
         const json = await res.json();

@@ -29,7 +29,7 @@ router.get('/reviews', checkAdminKey, async (req, res) => {
 
     const { data, error } = await supabase
       .from('reviews')
-      .select('id, item_id, text, stars, score, points_earned, created_at, item_name, users(phone_or_email), items(name)')
+      .select('id, item_id, text, stars, score, points_earned, photo_url, created_at, item_name, users(phone_or_email), items(name)')
       .order('created_at', { ascending: false })
       .range(Number(offset), Number(offset) + Number(limit) - 1);
 
