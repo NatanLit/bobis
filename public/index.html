@@ -473,6 +473,7 @@
     );
     let _userEmail = null;
     let _authToken = null;
+    let _authReady; // resolves when auth check is complete
 
     function paintHeaderPoints(pts) {
       if (pts > 0) {
@@ -490,7 +491,7 @@
       if (cached?.points) paintHeaderPoints(cached.points);
     } catch {}
 
-    (async () => {
+    _authReady = (async () => {
       const { data: { session } } = await _sb.auth.getSession();
       if (!session) {
         const next = encodeURIComponent(location.pathname + location.search);
@@ -718,6 +719,12 @@
       btn.disabled = true;
       btn.innerHTML = `<div class="spinner"></div><span>Отправляем...</span>`;
       try {
+        // Wait for auth to complete before sending (fixes race condition)
+        await _authReady;
+        if (!_userEmail) {
+          throw new Error('Не удалось определить аккаунт. Попробуйте перезайти.');
+        }
+
         const res  = await fetch('/review', {
           method:'POST', headers:{'Content-Type':'application/json'},
           body: JSON.stringify({

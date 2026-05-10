@@ -54,17 +54,24 @@ router.post('/', async (req, res) => {
     }
 
     const supabase = getSupabase();
-    let userId = null;
-
-    if (identifier && supabase) {
-      const { data: user, error: userErr } = await supabase
-        .from('users')
-        .upsert({ phone_or_email: identifier }, { onConflict: 'phone_or_email' })
-        .select('id')
-        .single();
-      if (userErr) console.error('[/review] user upsert error:', userErr);
-      userId = user?.id;
+    if (!identifier) {
+      return res.status(400).json({ success: false, error: 'Укажите email или телефон' });
     }
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: 'База данных не настроена' });
+    }
+
+    let userId = null;
+    const { data: user, error: userErr } = await supabase
+      .from('users')
+      .upsert({ phone_or_email: identifier }, { onConflict: 'phone_or_email' })
+      .select('id')
+      .single();
+    if (userErr) {
+      console.error('[/review] user upsert error:', userErr);
+      return res.status(500).json({ success: false, error: 'Ошибка авторизации пользователя' });
+    }
+    userId = user?.id;
 
     // ─── PARALLEL: score every review and upload every photo at once ───
     const [scores, photoUrls] = await Promise.all([
@@ -109,7 +116,14 @@ router.post('/', async (req, res) => {
         .from('reviews')
         .insert(inserts)
         .select('id, points_earned');
-      if (revErr) console.error('[/review] insert reviews error:', revErr);
+      if (revErr) {
+        console.error('[/review] insert reviews error:', revErr);
+        // Unique constraint: user already reviewed this item
+        if (revErr.code === '23505') {
+          return res.status(409).json({ success: false, error: 'Вы уже оставляли отзыв на этот товар' });
+        }
+        return res.status(500).json({ success: false, error: 'Ошибка при сохранении отзыва' });
+      }
 
       if (insertedReviews?.length) {
         const logs = insertedReviews.map(rv => ({ user_id: userId, review_id: rv.id, amount: rv.points_earned }));
