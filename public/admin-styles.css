@@ -47,6 +47,29 @@
   --cream: rgba(255, 255, 255, 0.05);
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.7);
+  --top-bar-bg: rgba(10, 10, 10, 0.8);
+}
+
+[data-theme="light"] {
+  --bg: #FAF8F5;
+  --bg-pattern: none;
+  --surface: #FFFFFF;
+  --surface-solid: #FFFFFF;
+  --sidebar-bg: #FFFFFF;
+  --text: #1A1612;
+  --text-secondary: #5A554F;
+  --text-tertiary: #8A8278;
+  --border: #EAE6DF;
+  --accent: #FF8C00;
+  --accent-hover: #E67E00;
+  --accent-light: rgba(255, 140, 0, 0.08);
+  --accent-glow: rgba(255, 140, 0, 0.18);
+  --caramel: #E4DDD5;
+  --chocolate: #1A1612;
+  --cream: rgba(0, 0, 0, 0.04);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --top-bar-bg: rgba(250, 248, 245, 0.85);
 }
 
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -305,33 +328,48 @@ body {
   box-shadow: 0 0 0 3px var(--accent);
 }
 
-/* ── Theme toggle ──────────────────────────────────────── */
+/* ── Theme toggle (SVG icons) ──────────────────────────── */
 .theme-toggle {
-  width: 52px; height: 28px;
-  border-radius: 14px; border: none;
+  width: 56px; height: 30px;
+  border-radius: 15px; border: none;
   background: var(--caramel);
   cursor: pointer;
   position: relative;
-  transition: background 0.5s ease;
+  transition: background 0.4s ease;
   padding: 0;
+  display: block;
 }
-.theme-toggle::after {
-  content: '☀️';
+.theme-toggle::before {
+  content: '';
   position: absolute; top: 3px; left: 3px;
-  width: 22px; height: 22px;
+  width: 24px; height: 24px;
   border-radius: 50%;
   background: #FFF;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
   transition: transform 0.4s var(--transition-bounce);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px;
+  z-index: 1;
+}
+.theme-toggle::after {
+  /* Sun icon (visible in light mode) */
+  content: '';
+  position: absolute; top: 6px; left: 6px;
+  width: 18px; height: 18px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF8C00' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='4'/><path d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41'/></svg>");
+  background-repeat: no-repeat;
+  background-size: contain;
+  transition: transform 0.4s var(--transition-bounce), background-image 0.2s ease;
+  z-index: 2;
 }
 [data-theme="dark"] .theme-toggle {
   background: var(--accent);
 }
+[data-theme="dark"] .theme-toggle::before {
+  transform: translateX(26px);
+}
 [data-theme="dark"] .theme-toggle::after {
-  content: '🌙';
-  transform: translateX(24px);
+  /* Moon icon (visible in dark mode) */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF8C00' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/></svg>");
+  transform: translateX(26px);
 }
 
 /* ── Table ─────────────────────────────────────────────── */
@@ -369,14 +407,11 @@ body {
 
 /* ── Header blur ───────────────────────────────────────── */
 .top-bar {
-  background: rgba(10,10,10,0.8);
+  background: var(--top-bar-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border);
   transition: background 0.6s ease, border-color 0.6s ease;
-}
-[data-theme="dark"] .top-bar {
-  background: rgba(10,10,10,0.8);
 }
 
 /* ── Live dot ──────────────────────────────────────────── */

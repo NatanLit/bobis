@@ -51,13 +51,14 @@ function timeAgo(iso) {
 // ── Theme Toggle ──────────────────────────────────────────
 function toggleTheme() {
   const html = document.documentElement;
-  const isDark = html.getAttribute('data-theme') === 'dark';
-  html.setAttribute('data-theme', isDark ? '' : 'dark');
-  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
 }
+// Apply saved theme on load (default: dark)
 (function () {
-  const saved = localStorage.getItem('theme');
-  if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
 })();
 
 // ── Navigation ────────────────────────────────────────────

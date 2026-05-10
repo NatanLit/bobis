@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <title>Войти / Зарегистрироваться</title>
+  <script>
+    // Apply saved theme before paint to avoid flash
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark');
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -100,9 +104,35 @@
 
     .form { display: none; }
     .form.active { display: block; }
+
+    /* Theme toggle in top-right corner */
+    .theme-btn {
+      position: fixed; top: 16px; right: 16px;
+      width: 40px; height: 40px; border-radius: 12px;
+      background: var(--card); border: 1px solid var(--card-b);
+      cursor: pointer; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, transform .15s;
+      padding: 0;
+    }
+    .theme-btn:active { transform: scale(.92); }
+    .theme-btn svg { width: 18px; height: 18px; color: var(--text2); }
+    .theme-btn .ico-sun  { display: none; }
+    .theme-btn .ico-moon { display: block; }
+    [data-theme="light"] .theme-btn .ico-sun  { display: block; }
+    [data-theme="light"] .theme-btn .ico-moon { display: none; }
   </style>
 </head>
 <body>
+  <button class="theme-btn" onclick="toggleTheme()" aria-label="Переключить тему">
+    <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+    </svg>
+  </button>
   <div class="wrap">
     <div class="logo">
       <svg viewBox="0 0 24 24" fill="currentColor">
@@ -165,6 +195,12 @@
   </div>
 
   <script>
+    function toggleTheme() {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    }
+
     const SUPABASE_URL = 'https://jtzmekaeyggbyodgtybl.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_H0ssO-N5HaRdTAZpT3UaSQ_EDtis45e';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
