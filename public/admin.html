@@ -42,6 +42,10 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 17h2m4 0v4m-4 0h4m0-4v-2m-6-2h2m0-2h2m2 0v2"/></svg>
         QR-коды
       </a>
+      <a class="sidebar-link" id="nav-offers" onclick="switchSection('offers')">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>
+        Предложения
+      </a>
     </nav>
 
     <div class="px-4 pb-6">
@@ -209,6 +213,34 @@
           </div>
 
         </div>
+      </div>
+
+      <!-- OFFERS SECTION -->
+      <div id="section-offers" class="section-content px-8 py-6 space-y-6" style="display:none">
+        <!-- Add offer form -->
+        <div class="dash-card p-5 animate-fade-up">
+          <h3 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--text-tertiary)">Добавить предложение</h3>
+          <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto_auto] gap-3">
+            <input id="new-offer-name" type="text" placeholder="Название (напр. Кофе бесплатно)"
+              class="h-11 rounded-xl px-4 text-sm font-medium outline-none transition-all"
+              style="background:var(--cream);border:1px solid var(--border);color:var(--text);font-family:inherit">
+            <input id="new-offer-desc" type="text" placeholder="Описание (необязательно)"
+              class="h-11 rounded-xl px-4 text-sm font-medium outline-none transition-all"
+              style="background:var(--cream);border:1px solid var(--border);color:var(--text);font-family:inherit">
+            <input id="new-offer-pts" type="number" min="1" placeholder="Стоимость (pts)"
+              class="h-11 rounded-xl px-4 text-sm font-medium outline-none transition-all w-36"
+              style="background:var(--cream);border:1px solid var(--border);color:var(--text);font-family:inherit">
+            <button onclick="addOffer()"
+              class="h-11 px-5 rounded-xl text-sm font-bold transition-all"
+              style="background:var(--accent);color:#fff;border:none;font-family:inherit;cursor:pointer;box-shadow:0 4px 12px var(--accent-glow)">
+              Добавить
+            </button>
+          </div>
+          <p class="text-xs mt-2" style="color:var(--text-tertiary)">Предложение сразу появится у всех пользователей в профиле</p>
+        </div>
+
+        <!-- Offers grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="offers-grid"></div>
       </div>
     </div>
   </div>

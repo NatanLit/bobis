@@ -1,6 +1,7 @@
 // ── Live data from API ─────────────────────────────────────
 let liveReviews  = [];
 let liveProducts = [];
+let liveOffers   = [];
 
 function adminKey() { return sessionStorage.getItem('admin_key') || 'review123'; }
 
@@ -35,6 +36,16 @@ async function fetchProducts() {
     if (json.success) liveProducts = json.data || [];
   } catch (e) {
     console.warn('Products API failed:', e);
+  }
+}
+
+async function fetchOffers() {
+  try {
+    const res = await fetch('/offers');
+    const json = await res.json();
+    if (json.success) liveOffers = json.data || [];
+  } catch (e) {
+    console.warn('Offers API failed:', e);
   }
 }
 
@@ -88,10 +99,11 @@ function switchSection(sectionId, opts = {}) {
   if (navLink) navLink.classList.add('active');
 
   const titles = {
-    dashboard: { t: 'Дашборд',   s: 'Обзор отзывов и рейтингов' },
-    reviews:   { t: 'Отзывы',    s: 'Управление откликами клиентов' },
-    products:  { t: 'Товары',    s: 'Рейтинг позиций меню' },
-    qr:        { t: 'QR-коды',   s: 'Генератор ссылок для кассиров' },
+    dashboard: { t: 'Дашборд',       s: 'Обзор отзывов и рейтингов' },
+    reviews:   { t: 'Отзывы',       s: 'Управление откликами клиентов' },
+    products:  { t: 'Товары',       s: 'Рейтинг позиций меню' },
+    qr:        { t: 'QR-коды',      s: 'Генератор ссылок для кассиров' },
+    offers:    { t: 'Предложения', s: 'Бонусные предложения для клиентов' },
   };
   const info = titles[sectionId];
   if (info) {
@@ -107,6 +119,7 @@ function switchSection(sectionId, opts = {}) {
   updateBackButton();
 
   if (sectionId === 'products') renderProductsGrid();
+  if (sectionId === 'offers')   { fetchOffers().then(() => renderOffersGrid()); }
   if (sectionId === 'qr' && !qrInited) {
     qrInited = true;
     fetchProducts().then(() => qrRenderProductPicker());
@@ -567,9 +580,88 @@ function startAutoRefresh() {
   }, 15000);
 }
 
-// ── Init ──────────────────────────────────────────────────
-Promise.all([fetchReviews(), fetchProducts()]).then(() => {
+// ── Init ────────────────────────────────────────────────────
+Promise.all([fetchReviews(), fetchProducts(), fetchOffers()]).then(() => {
   initDashboard();
   switchSection('dashboard');
   startAutoRefresh();
 });
+
+// ── Offers CRUD ────────────────────────────────────────────────
+async function addOffer() {
+  const nameEl = document.getElementById('new-offer-name');
+  const descEl = document.getElementById('new-offer-desc');
+  const ptsEl  = document.getElementById('new-offer-pts');
+  const name   = nameEl.value.trim();
+  const desc   = descEl.value.trim();
+  const pts    = parseInt(ptsEl.value);
+  if (!name) { showToast('Введите название', 'error'); return; }
+  if (!pts || pts < 1) { showToast('Укажите стоимость в поинтах', 'error'); return; }
+  try {
+    const res = await fetch(`/offers?key=${adminKey()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description: desc || null, points_cost: pts }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Не удалось добавить');
+    nameEl.value = ''; descEl.value = ''; ptsEl.value = '';
+    showToast('Предложение добавлено', 'success');
+    await fetchOffers();
+    renderOffersGrid();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function deleteOffer(id, name) {
+  if (!confirm(`Удалить «${name}»?`)) return;
+  try {
+    const res = await fetch(`/offers/${id}?key=${adminKey()}`, { method: 'DELETE' });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Не удалось удалить');
+    showToast('Предложение удалено', 'success');
+    await fetchOffers();
+    renderOffersGrid();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+function renderOffersGrid() {
+  const grid = document.getElementById('offers-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!liveOffers.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+      </svg>
+      <p>Предложений пока нет — добавьте через форму выше</p>
+    </div>`;
+    return;
+  }
+  liveOffers.forEach((o, i) => {
+    grid.innerHTML += `
+      <div class="dash-card p-5 animate-scale-in" style="animation-delay:${i * 0.06}s;position:relative">
+        <button onclick="deleteOffer('${o.id}','${(o.name || '').replace(/'/g, "\\\'")}')" title="Удалить"
+          class="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+          style="background:var(--bg);color:var(--text-tertiary);border:1px solid var(--border);cursor:pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+          </svg>
+        </button>
+        <div class="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style="background:var(--accent-light)">
+          <svg class="w-6 h-6" fill="none" stroke="var(--accent)" viewBox="0 0 24 24" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+          </svg>
+        </div>
+        <h4 class="text-base font-bold mb-1" style="color:var(--text)">${o.name}</h4>
+        ${o.description ? `<p class="text-xs mb-2" style="color:var(--text-secondary)">${o.description}</p>` : ''}
+        <div class="flex items-center gap-2 mt-2">
+          <span class="text-sm font-bold" style="color:var(--accent)">${o.points_cost} pts</span>
+          <span class="text-xs" style="color:var(--text-tertiary)">• ${timeAgo(o.created_at)}</span>
+        </div>
+      </div>`;
+  });
+}

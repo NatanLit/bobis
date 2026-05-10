@@ -403,15 +403,7 @@
       <!-- Special offers -->
       <div class="section fade-in" style="animation-delay:.07s">
         <div class="section-title">Специальные предложения</div>
-        <div class="offer-empty">
-          <div class="offer-empty-ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
-            </svg>
-          </div>
-          <div class="offer-empty-title">Предложений пока нет</div>
-          <div class="offer-empty-sub">Мы добавим специальные предложения для вас скоро</div>
-        </div>
+        <div id="main-offers"></div>
       </div>
 
       <!-- History -->
@@ -646,19 +638,8 @@
     let purchases = [];
     let userName = localStorage.getItem('user_name') || '';
 
-    // Demo spend menu
-    const spendMenu = [
-      { name:'Борщ',       pts:150, color:'#FF6B35',
-        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 20c0 6 4 10 10 10s10-4 10-10"/><path d="M6 20h24"/><path d="M12 8s0 4 6 4 6-4 6-4"/><path d="M18 4v4"/></svg>` },
-      { name:'Кофе',       pts:50,  color:'#8B5E3C',
-        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6 14h18l-2 14H8L6 14z"/><path d="M24 17h3a3 3 0 010 6h-3"/><path d="M10 6s1 3 4 3 4-3 4-3"/></svg>` },
-      { name:'Стейк',      pts:300, color:'#C0392B',
-        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><ellipse cx="18" cy="20" rx="12" ry="8"/><path d="M10 20s2-6 8-6 8 6 8 6"/><path d="M14 14l2-5 2 5"/></svg>` },
-      { name:'Десерт',     pts:100, color:'#E91E8C',
-        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M10 22h16l-2 8H12l-2-8z"/><path d="M8 22c0-6 4-14 10-14s10 8 10 14"/><path d="M14 12c0 0 1 4 4 4s4-4 4-4"/></svg>` },
-      { name:'Салат',      pts:80,  color:'#27AE60',
-        svg:`<svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 24c0 0 2-12 10-12s10 12 10 12H8z"/><path d="M12 18s2-6 6-6"/><path d="M18 14s2 4 6 8"/></svg>` },
-    ];
+    // Demo spend menu replaced with dynamic offers
+    let offers = [];
 
     // ── Render ───────────────────────────────────────────────
     function renderAll() {
@@ -667,18 +648,48 @@
       animateCount(document.getElementById('bonus-pts'),   points,           { duration: 1.4 });
       animateCount(document.getElementById('main-pcount'), purchases.length, { duration: 0.9 });
 
-      // Spend carousel
-      document.getElementById('spend-scroll').innerHTML = spendMenu.map((item, i) => `
-        <div class="spend-item" onclick="selectSpend(${i})" id="spend-${i}">
-          <div class="spend-ico" style="background:${item.color}18">
-            <svg viewBox="0 0 36 36" fill="none" stroke="${item.color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              ${item.svg.replace(/<svg[^>]*>|<\/svg>/g,'')}
-            </svg>
+      // Spend carousel (dynamic offers)
+      const spendEl = document.getElementById('spend-scroll');
+      if (!offers.length) {
+        spendEl.innerHTML = `<div style="width:100%;text-align:center;padding:20px;color:var(--text2);font-size:13px">Предложений пока нет</div>`;
+      } else {
+        spendEl.innerHTML = offers.map((o, i) => `
+          <div class="spend-item${points >= o.points_cost ? '' : ' disabled'}" onclick="${points >= o.points_cost ? `redeemOffer('${o.id}', '${o.name.replace(/'/g,"\\'")}', ${o.points_cost})` : ''}" id="spend-${i}"
+               style="${points < o.points_cost ? 'opacity:.5;cursor:default' : ''}">
+            <div class="spend-ico" style="background:var(--accent-10)">
+              <svg viewBox="0 0 36 36" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 12v19m0-19v-3a3 3 0 113 3h-3zm0 0v-4A3.5 3.5 0 1014.5 12H18zm-10 6h20M8 18a3 3 0 110-6h20a3 3 0 110 6M8 18v10a3 3 0 003 3h14a3 3 0 003-3V18"/>
+              </svg>
+            </div>
+            <div class="spend-name">${o.name}</div>
+            <div class="spend-pts">${o.points_cost} pts</div>
           </div>
-          <div class="spend-name">${item.name}</div>
-          <div class="spend-pts">${item.pts} pts</div>
-        </div>
-      `).join('');
+        `).join('');
+      }
+
+      // Main view — offers section
+      const mainOffersEl = document.getElementById('main-offers');
+      if (mainOffersEl) {
+        if (!offers.length) {
+          mainOffersEl.innerHTML = `<div class="offer-empty">
+            <div class="offer-empty-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+            <div class="offer-empty-title">Предложений пока нет</div>
+            <div class="offer-empty-sub">Мы добавим специальные предложения для вас скоро</div>
+          </div>`;
+        } else {
+          mainOffersEl.innerHTML = `<div class="spend-scroll">${offers.map((o, i) => `
+            <div class="spend-item${points >= o.points_cost ? '' : ''}" onclick="openView('view-bonus')" style="cursor:pointer">
+              <div class="spend-ico" style="background:var(--accent-10)">
+                <svg viewBox="0 0 36 36" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 12v19m0-19v-3a3 3 0 113 3h-3zm0 0v-4A3.5 3.5 0 1014.5 12H18zm-10 6h20M8 18a3 3 0 110-6h20a3 3 0 110 6M8 18v10a3 3 0 003 3h14a3 3 0 003-3V18"/>
+                </svg>
+              </div>
+              <div class="spend-name">${o.name}</div>
+              <div class="spend-pts">${o.points_cost} pts</div>
+            </div>
+          `).join('')}</div>`;
+        }
+      }
 
       // History (shared)
       const histHtml = history.length
@@ -746,6 +757,46 @@
       });
     }
 
+    // ── Redeem offer ──────────────────────────────────────────
+    async function redeemOffer(offerId, offerName, cost) {
+      if (points < cost) { alert('Недостаточно поинтов'); return; }
+      if (!confirm(`Потратить ${cost} поинтов на \xab${offerName}\xbb?`)) return;
+
+      try {
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) { location.href = '/login.html?next=/profile.html'; return; }
+
+        const res = await fetch(`/offers/${offerId}/redeem`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + session.access_token,
+          },
+        });
+        const json = await res.json();
+        if (!json.success) {
+          alert(json.error || 'Ошибка при активации');
+          return;
+        }
+
+        // Update local state
+        points = json.data.new_balance;
+        history.unshift({
+          type: 'minus',
+          label: `Предложение: ${json.data.offer_name}`,
+          amount: json.data.points_spent,
+          date: new Date().toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
+        });
+        saveCache({ points, history, purchases });
+        renderAll();
+        alert(`\u2705 Вы активировали \xab${json.data.offer_name}\xbb!\nОстаток: ${json.data.new_balance} поинтов`);
+      } catch (e) {
+        console.error('[redeem] error:', e);
+        alert('Ошибка соединения');
+      }
+    }
+
     // ── Cache helpers ────────────────────────────────────────
     const CACHE_KEY = 'profile_cache_v1';
     function loadCache() {
@@ -804,16 +855,27 @@
 
       // Step 2: refresh from server in background, re-render when fresh data arrives
       try {
-        const res  = await fetch('/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
-        const json = await res.json();
-        if (json.success) {
-          const shaped = shapeServerData(json.data);
+        // Fetch user data and offers in parallel
+        const [meRes, offersRes] = await Promise.all([
+          fetch('/user/me', { headers: { 'Authorization': 'Bearer ' + token } }),
+          fetch('/offers'),
+        ]);
+        const meJson = await meRes.json();
+        const offersJson = await offersRes.json();
+
+        if (meJson.success) {
+          const shaped = shapeServerData(meJson.data);
           applyServerData(shaped);
           saveCache(shaped);
-          renderAll();
         } else {
-          console.error('[profile] /user/me failed:', json);
+          console.error('[profile] /user/me failed:', meJson);
         }
+
+        if (offersJson.success) {
+          offers = offersJson.data || [];
+        }
+
+        renderAll();
       } catch (e) {
         console.error('[profile] fetch error:', e);
       }

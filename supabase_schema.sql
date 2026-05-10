@@ -62,12 +62,41 @@ returns void language sql as $$
   where id = user_id_arg;
 $$;
 
+-- ── Offers (создаёт админ) ───────────────────────────────────
+create table if not exists offers (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  description text,
+  points_cost int not null check (points_cost > 0),
+  active      boolean not null default true,
+  created_at  timestamptz default now()
+);
+
+-- ── Redemptions (юзер тратит поинты на offer) ────────────────
+create table if not exists redemptions (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid references users(id) on delete cascade,
+  offer_id     uuid references offers(id) on delete set null,
+  points_spent int not null,
+  created_at   timestamptz default now()
+);
+
+-- ── RPC: decrement_points ─────────────────────────────────────
+create or replace function decrement_points(user_id_arg uuid, amount_arg int)
+returns void language sql as $$
+  update users
+  set total_points = total_points - amount_arg
+  where id = user_id_arg and total_points >= amount_arg;
+$$;
+
 -- ── Row Level Security (открыть для сервисного ключа) ─────────
 alter table businesses enable row level security;
 alter table users       enable row level security;
 alter table items       enable row level security;
 alter table reviews     enable row level security;
 alter table points_log  enable row level security;
+alter table offers      enable row level security;
+alter table redemptions enable row level security;
 
 -- Сервисный ключ (SUPABASE_KEY = service_role) обходит RLS автоматически.
 -- Для публичного anon-ключа добавь политики при необходимости.
