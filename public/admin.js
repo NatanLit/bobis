@@ -340,7 +340,7 @@ async function renderProductsGrid() {
         </div>
         <div class="p-4 flex justify-between items-center" style="background:var(--surface)">
           <span class="text-sm font-semibold" style="color:var(--text-secondary)">Отзывов: ${p.reviews}</span>
-          <span class="text-xs font-mono" style="color:var(--text-tertiary)" title="Item ID">${p.id.slice(0, 8)}…</span>
+          ${p.reviews ? `<span class="text-xs font-semibold" style="color:var(--accent)">★ ${p.avg}</span>` : ''}
         </div>
       </div>`;
   });
@@ -428,9 +428,8 @@ function qrRenderProductPicker() {
         <img src="${img}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">
         <div class="flex-1 min-w-0">
           <div class="text-sm font-semibold truncate" style="color:var(--text)">${p.name}</div>
-          <div class="text-xs font-mono truncate" style="color:var(--text-tertiary)">${p.id.slice(0, 8)}…</div>
+          <div class="text-xs" style="color:var(--text-tertiary)">${p.reviews} ${p.reviews === 1 ? 'отзыв' : (p.reviews >= 2 && p.reviews <= 4) ? 'отзыва' : 'отзывов'}</div>
         </div>
-        <span class="text-xs" style="color:var(--text-tertiary)">${p.reviews} отз.</span>
       </label>
     `;
   }).join('');
