@@ -327,6 +327,23 @@
     /* Entrance animation */
     @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
     .fade-in { animation: fadeIn .4s cubic-bezier(.22,1,.36,1) both; }
+
+    /* Logout button */
+    .logout-btn {
+      width: 100%; margin-top: 28px;
+      height: 50px; border-radius: var(--r);
+      background: var(--card); border: 1px solid var(--card-b);
+      color: var(--danger);
+      font-family: 'Outfit', system-ui, sans-serif;
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, transform .15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .logout-btn:hover { background: rgba(239,68,68,.06); border-color: rgba(239,68,68,.3); }
+    .logout-btn:active { transform: scale(.98); }
+    .logout-btn svg { width: 16px; height: 16px; }
   </style>
 </head>
 <body>
@@ -402,6 +419,16 @@
         <div class="section-title">История</div>
         <div class="hist-card" id="main-history"></div>
       </div>
+
+      <!-- Logout -->
+      <button class="logout-btn fade-in" style="animation-delay:.2s" onclick="window.logout && window.logout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Выйти из аккаунта
+      </button>
     </div>
   </div>
 
