@@ -29,7 +29,7 @@ router.get('/reviews', checkAdminKey, async (req, res) => {
 
     const { data, error } = await supabase
       .from('reviews')
-      .select('id, text, stars, score, points_earned, created_at, item_name, users(phone_or_email), items(name)')
+      .select('id, item_id, text, stars, score, points_earned, created_at, item_name, users(phone_or_email), items(name)')
       .order('created_at', { ascending: false })
       .range(Number(offset), Number(offset) + Number(limit) - 1);
 
@@ -38,6 +38,76 @@ router.get('/reviews', checkAdminKey, async (req, res) => {
   } catch (err) {
     console.error('GET /admin/reviews error:', err);
     return res.status(500).json({ success: false, error: 'Внутренняя ошибка сервера' });
+  }
+});
+
+// ── Products (items) CRUD ────────────────────────────────
+router.get('/products', checkAdminKey, async (req, res) => {
+  try {
+    const sb = getSupabase();
+    // All items + aggregated stats from reviews in parallel
+    const [{ data: items, error: itemsErr }, { data: reviews, error: revsErr }] = await Promise.all([
+      sb.from('items').select('id, name, image_url, created_at').order('created_at', { ascending: false }),
+      sb.from('reviews').select('item_id, stars, score').not('item_id', 'is', null),
+    ]);
+    if (itemsErr) throw itemsErr;
+    if (revsErr)  throw revsErr;
+
+    // Aggregate per item_id
+    const stats = {};
+    (reviews || []).forEach(r => {
+      const s = stats[r.item_id] ||= { count: 0, starsSum: 0, scoreSum: 0 };
+      s.count += 1;
+      s.starsSum += r.stars || 0;
+      s.scoreSum += r.score || 0;
+    });
+
+    const result = (items || []).map(it => {
+      const s = stats[it.id] || { count: 0, starsSum: 0, scoreSum: 0 };
+      return {
+        id: it.id,
+        name: it.name,
+        image_url: it.image_url,
+        created_at: it.created_at,
+        reviews: s.count,
+        avg: s.count ? +(s.starsSum / s.count).toFixed(2) : 0,
+        avg_score: s.count ? Math.round(s.scoreSum / s.count) : 0,
+      };
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('GET /admin/products error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/products', checkAdminKey, async (req, res) => {
+  try {
+    const { name, image_url } = req.body || {};
+    if (!name || !name.trim()) return res.status(400).json({ success: false, error: 'name required' });
+    const sb = getSupabase();
+    const { data, error } = await sb
+      .from('items')
+      .insert({ name: name.trim(), image_url: image_url?.trim() || null })
+      .select('id, name, image_url, created_at')
+      .single();
+    if (error) throw error;
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('POST /admin/products error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.delete('/products/:id', checkAdminKey, async (req, res) => {
+  try {
+    const sb = getSupabase();
+    const { error } = await sb.from('items').delete().eq('id', req.params.id);
+    if (error) throw error;
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /admin/products error:', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

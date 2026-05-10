@@ -7,6 +7,7 @@ const reviewRouter = require('./routes/review');
 const couponRouter = require('./routes/coupon');
 const adminRouter  = require('./routes/admin');
 const userRouter   = require('./routes/user');
+const itemsRouter  = require('./routes/items');
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/review', ipLimiter, reviewRouter);
 app.use('/coupon', couponRouter);
 app.use('/admin',  adminRouter);
 app.use('/user',   userRouter);
+app.use('/items',  itemsRouter);
 
 app.get('/thanks.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'thanks.html'));

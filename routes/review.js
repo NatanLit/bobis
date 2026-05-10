@@ -54,11 +54,14 @@ router.post('/', async (req, res) => {
       totalPoints += points;
 
       if (userId) {
-        let itemQ = supabase.from('items').select('id').eq('name', r.item);
-        itemQ = shop ? itemQ.eq('business_id', shop) : itemQ.is('business_id', null);
-        const { data: item } = await itemQ.maybeSingle();
-
-        const itemId = item?.id || null;
+        // Prefer explicit item_id from QR; fall back to name lookup for legacy flows
+        let itemId = r.item_id || null;
+        if (!itemId) {
+          let itemQ = supabase.from('items').select('id').eq('name', r.item);
+          itemQ = shop ? itemQ.eq('business_id', shop) : itemQ.is('business_id', null);
+          const { data: item } = await itemQ.maybeSingle();
+          itemId = item?.id || null;
+        }
 
         if (itemId) {
           const { data: existing } = await supabase

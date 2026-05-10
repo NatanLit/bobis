@@ -518,8 +518,39 @@
     // ── Data ─────────────────────────────────────────────────
     const p     = new URLSearchParams(location.search);
     const shop  = p.get('shop') || '';
-    const items = (p.get('items') || 'Товар 1,Товар 2').split(',').map(s => s.trim()).filter(Boolean);
-    const state = Object.fromEntries(items.map((name, i) => [i, { name, stars:0, text:'', photo:null, done:false }]));
+
+    // New format: ?ids=uuid1,uuid2 — fetch names from backend
+    // Legacy:    ?items=Name1,Name2 — names directly in URL
+    const idsParam = p.get('ids');
+    let items = [];
+    if (idsParam) {
+      // Placeholder names while fetching
+      items = idsParam.split(',').map(id => id.trim()).filter(Boolean).map(id => ({ id, name: 'Загрузка...' }));
+    } else {
+      const namesRaw = p.get('items') || 'Товар 1,Товар 2';
+      items = namesRaw.split(',').map(s => s.trim()).filter(Boolean).map(name => ({ id: null, name }));
+    }
+    const state = Object.fromEntries(items.map((it, i) => [i, { id: it.id, name: it.name, stars:0, text:'', photo:null, done:false }]));
+
+    // If ids provided, fetch real names + images from backend
+    if (idsParam) {
+      fetch(`/items?ids=${encodeURIComponent(idsParam)}`)
+        .then(r => r.json())
+        .then(json => {
+          if (!json.success || !json.data) return;
+          const byId = Object.fromEntries(json.data.map(it => [it.id, it]));
+          Object.values(state).forEach((s, i) => {
+            const real = byId[s.id];
+            if (real) {
+              s.name = real.name;
+              s.image_url = real.image_url;
+            }
+          });
+          // Re-render the cards with real names
+          if (typeof render === 'function') render();
+        })
+        .catch(e => console.warn('Failed to fetch item details:', e));
+    }
 
     document.getElementById('shop-lbl').textContent  = shop ? `Магазин #${shop}` : 'Ваш заказ';
     document.getElementById('total-c').textContent   = items.length;
@@ -586,14 +617,14 @@
     // ── Render cards ─────────────────────────────────────────
     function render() {
       const el = document.getElementById('cards');
-      el.innerHTML = items.map((name, i) => `
+      el.innerHTML = items.map((it, i) => `
         <div class="card" id="card-${i}" style="animation-delay:${i*70}ms">
 
           <div class="card-top">
             <div class="card-badge" id="badge-${i}">${i+1}</div>
             <div class="card-info">
               <div class="card-pos">позиция ${i+1}</div>
-              <div class="card-name">${name}</div>
+              <div class="card-name">${state[i]?.name || it.name}</div>
             </div>
             <div class="done-check">
               <svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24">
@@ -676,7 +707,7 @@
           body: JSON.stringify({
             shop,
             email: _userEmail,
-            reviews: Object.values(state).map(s => ({ item:s.name, stars:s.stars, text:s.text, hasPhoto:!!s.photo })),
+            reviews: Object.values(state).map(s => ({ item:s.name, item_id:s.id || null, stars:s.stars, text:s.text, hasPhoto:!!s.photo })),
           }),
         });
         const json = await res.json();

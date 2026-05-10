@@ -1,27 +1,18 @@
-// ── Mock Data (Products — до подключения QR) ──────────────
-const mockProducts = [
-  { name: 'Круассан классический', reviews: 187, avg: 4.7, trend: +0.3, img: 'https://images.unsplash.com/photo-1555507036-ab1d4075c6f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-  { name: 'Латте карамель',        reviews: 156, avg: 4.4, trend: +0.1, img: 'https://images.unsplash.com/photo-1557006021-b85faa2bc5e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-  { name: 'Тирамису',              reviews: 134, avg: 4.6, trend: +0.4, img: 'https://images.unsplash.com/photo-1571115177098-24ec42ed204d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-  { name: 'Чизкейк ягодный',       reviews: 128, avg: 4.5, trend: -0.1, img: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-  { name: 'Эклер шоколадный',      reviews: 112, avg: 3.8, trend: -0.3, img: 'https://images.unsplash.com/photo-1603532648955-039310d9ed75?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-  { name: 'Капучино',              reviews: 98,  avg: 3.2, trend: -0.5, img: 'https://images.unsplash.com/photo-1534045618451-26c361907b22?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-  { name: 'Эспрессо',              reviews: 145, avg: 4.8, trend: +0.2, img: 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-  { name: 'Макарун',               reviews: 210, avg: 4.5, trend: +0.1, img: 'https://images.unsplash.com/photo-1569864358642-9d1684040f43?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-];
+// ── Live data from API ─────────────────────────────────────
+let liveReviews  = [];
+let liveProducts = [];
 
-// ── Live reviews from API ─────────────────────────────────
-let liveReviews = [];
+function adminKey() { return sessionStorage.getItem('admin_key') || 'review123'; }
 
 async function fetchReviews() {
   try {
-    const key = sessionStorage.getItem('admin_key') || 'review123';
-    const res = await fetch(`/admin/reviews?key=${key}&limit=100`);
+    const res = await fetch(`/admin/reviews?key=${adminKey()}&limit=100`);
     const json = await res.json();
-    if (!json.success || !json.data.length) return;
+    if (!json.success) return;
 
-    liveReviews = json.data.map(r => ({
+    liveReviews = (json.data || []).map(r => ({
       id:       r.id,
+      itemId:   r.item_id || null,
       name:     r.users?.phone_or_email || 'Гость',
       product:  r.item_name || r.items?.name || 'Неизвестный товар',
       stars:    r.stars,
@@ -32,8 +23,23 @@ async function fetchReviews() {
       points:   r.points_earned,
     }));
   } catch (e) {
-    console.warn('API недоступен, используем моки');
+    console.warn('Reviews API failed:', e);
   }
+}
+
+async function fetchProducts() {
+  try {
+    const res = await fetch(`/admin/products?key=${adminKey()}`);
+    const json = await res.json();
+    if (json.success) liveProducts = json.data || [];
+  } catch (e) {
+    console.warn('Products API failed:', e);
+  }
+}
+
+// Map item_id → reviews count from live reviews data, used for live updates
+function reviewsForProduct(productId) {
+  return liveReviews.filter(r => r.itemId === productId);
 }
 
 function timeAgo(iso) {
@@ -62,7 +68,10 @@ function toggleTheme() {
 })();
 
 // ── Navigation ────────────────────────────────────────────
-function switchSection(sectionId) {
+const navHistory = ['dashboard'];
+let currentSection = 'dashboard';
+
+function switchSection(sectionId, opts = {}) {
   document.querySelectorAll('.section-content').forEach(el => {
     el.style.display = 'none';
     el.classList.remove('section-enter');
@@ -89,14 +98,37 @@ function switchSection(sectionId) {
     document.getElementById('page-subtitle').textContent = info.s;
   }
 
-  if (sectionId === 'products' && document.getElementById('products-grid').innerHTML === '') {
-    renderProductsGrid();
+  // Track history for back navigation (skip if explicitly going back)
+  if (!opts.fromBack && currentSection !== sectionId) {
+    navHistory.push(sectionId);
   }
+  currentSection = sectionId;
+  updateBackButton();
+
+  if (sectionId === 'products') renderProductsGrid();
   if (sectionId === 'qr' && !qrInited) {
     qrInited = true;
-    qrAddItem();
-    qrAddItem();
+    fetchProducts().then(() => qrRenderProductPicker());
   }
+}
+
+function goBack() {
+  if (navHistory.length > 1) {
+    navHistory.pop();
+    const prev = navHistory[navHistory.length - 1];
+    switchSection(prev, { fromBack: true });
+  } else {
+    switchSection('dashboard', { fromBack: true });
+  }
+}
+
+function updateBackButton() {
+  const btn = document.getElementById('back-btn');
+  if (!btn) return;
+  // Show back button anywhere except dashboard
+  const visible = currentSection !== 'dashboard';
+  btn.classList.toggle('hidden', !visible);
+  btn.classList.toggle('flex', visible);
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -129,7 +161,7 @@ function initDashboard() {
   const stats = [
     { label: 'Всего отзывов', value: totalReviews || '—', change: `сегодня: ${todayCount}`, up: true,  icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>' },
     { label: 'Средний балл',  value: avgStars,             change: '/ 5 звёзд',              up: true,  icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>' },
-    { label: 'Товаров',       value: mockProducts.length,  change: 'mock-данные',             up: true,  icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>' },
+    { label: 'Товаров',       value: liveProducts.length || '—', change: 'в каталоге',           up: true,  icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>' },
     { label: 'С фото',        value: withPhoto || '—',     change: 'из отзывов',              up: false, icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
   ];
 
@@ -171,32 +203,35 @@ function initDashboard() {
       </div>`;
   });
 
-  // Products table (mock)
+  // Products table (live)
   const tbody = document.getElementById('products-tbody');
   tbody.innerHTML = '';
-  mockProducts.forEach((p, i) => {
-    const scoreClass = p.avg >= 4.5 ? 'score-high' : p.avg >= 3.5 ? 'score-mid' : 'score-low';
-    const scoreText  = p.avg >= 4.5 ? 'Отлично'   : p.avg >= 3.5 ? 'Средне'   : 'Плохо';
-    const trendUp    = p.trend >= 0;
-    tbody.innerHTML += `
-      <tr onclick="switchSection('products')">
-        <td>
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style="background:var(--accent-light);color:var(--accent)">${i + 1}</div>
-            <span class="font-semibold" style="color:var(--text)">${p.name}</span>
-          </div>
-        </td>
-        <td style="color:var(--text-secondary)">${p.reviews}</td>
-        <td>
-          <div class="flex items-center gap-2">
-            <div class="flex gap-0.5">${starsHTML(Math.round(p.avg))}</div>
-            <span class="font-bold" style="color:var(--text)">${p.avg}</span>
-          </div>
-        </td>
-        <td><span class="score-badge ${scoreClass}">${scoreText}</span></td>
-        <td><span class="stat-change ${trendUp ? 'up' : 'down'}">${trendUp ? '↑' : '↓'} ${trendUp ? '+' : ''}${p.trend.toFixed(1)}</span></td>
-      </tr>`;
-  });
+  if (!liveProducts.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:32px;color:var(--text-tertiary)">Товаров пока нет — добавьте в разделе «Товары»</td></tr>`;
+  } else {
+    liveProducts.forEach((p, i) => {
+      const scoreClass = p.avg >= 4.5 ? 'score-high' : p.avg >= 3.5 ? 'score-mid' : 'score-low';
+      const scoreText  = p.avg >= 4.5 ? 'Отлично'   : p.avg >= 3.5 ? 'Средне'   : (p.reviews ? 'Плохо' : '—');
+      tbody.innerHTML += `
+        <tr onclick="filterReviewsByProduct('${p.id}','${p.name.replace(/'/g, "\\'")}')">
+          <td>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style="background:var(--accent-light);color:var(--accent)">${i + 1}</div>
+              <span class="font-semibold" style="color:var(--text)">${p.name}</span>
+            </div>
+          </td>
+          <td style="color:var(--text-secondary)">${p.reviews}</td>
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="flex gap-0.5">${starsHTML(Math.round(p.avg))}</div>
+              <span class="font-bold" style="color:var(--text)">${p.avg || '—'}</span>
+            </div>
+          </td>
+          <td><span class="score-badge ${scoreClass}">${scoreText}</span></td>
+          <td style="color:var(--text-tertiary);font-size:12px">${p.reviews ? `AI: ${p.avg_score}` : 'нет данных'}</td>
+        </tr>`;
+    });
+  }
 
   // Reviews lists
   renderReviewsList(reviews, 'reviews-list-dash', true);
@@ -268,90 +303,154 @@ function filterReviews(stars, btn) {
   renderReviewsList(filtered, 'reviews-full-list', false);
 }
 
-// ── Render Products Grid (mock) ───────────────────────────
-function renderProductsGrid() {
+// ── Render Products Grid (live from /admin/products) ─────
+async function renderProductsGrid() {
   const grid = document.getElementById('products-grid');
+  if (!liveProducts.length) {
+    await fetchProducts();
+  }
   grid.innerHTML = '';
-  mockProducts.forEach((p, i) => {
+  if (!liveProducts.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+      </svg>
+      <p>Товаров пока нет — добавьте через форму выше</p>
+    </div>`;
+    return;
+  }
+  liveProducts.forEach((p, i) => {
+    const img = p.image_url || `https://placehold.co/600x400/${'333'}/fff?text=${encodeURIComponent(p.name.slice(0,18))}`;
     grid.innerHTML += `
-      <div class="product-card animate-scale-in" style="animation-delay:${i * 0.08}s" onclick="filterReviewsByProduct('${p.name}')">
-        <div class="relative">
-          <img src="${p.img}" class="product-img" alt="${p.name}">
+      <div class="product-card animate-scale-in" style="animation-delay:${i * 0.06}s">
+        <div class="relative" onclick="filterReviewsByProduct('${p.id}','${p.name.replace(/'/g, "\\'")}')" style="cursor:pointer">
+          <img src="${img}" class="product-img" alt="${p.name}" onerror="this.src='https://placehold.co/600x400/333/fff?text=No+Image'">
           <div class="product-overlay">
             <h3 class="text-white font-bold text-lg mb-1">${p.name}</h3>
             <div class="flex items-center gap-2">
               <div class="flex gap-0.5">${starsHTML(Math.round(p.avg))}</div>
-              <span class="text-white font-bold text-sm">${p.avg}</span>
+              <span class="text-white font-bold text-sm">${p.avg || '0.0'}</span>
             </div>
           </div>
+          <button onclick="event.stopPropagation();deleteProduct('${p.id}','${p.name.replace(/'/g, "\\'")}')" title="Удалить"
+            class="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+            style="background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;backdrop-filter:blur(8px)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
+          </button>
         </div>
-        <div class="p-4 flex justify-between items-center bg-surface">
+        <div class="p-4 flex justify-between items-center" style="background:var(--surface)">
           <span class="text-sm font-semibold" style="color:var(--text-secondary)">Отзывов: ${p.reviews}</span>
-          <span class="stat-change ${p.trend >= 0 ? 'up' : 'down'}">${p.trend >= 0 ? '↑' : '↓'} ${Math.abs(p.trend)}</span>
+          <span class="text-xs font-mono" style="color:var(--text-tertiary)" title="Item ID">${p.id.slice(0, 8)}…</span>
         </div>
       </div>`;
   });
 }
 
-function filterReviewsByProduct(productName) {
+function filterReviewsByProduct(productId, productName) {
   switchSection('reviews');
   document.querySelectorAll('.filter-pill').forEach(el => el.classList.remove('active'));
-  const filtered = liveReviews.filter(r => r.product === productName);
+  const filtered = productId
+    ? liveReviews.filter(r => r.itemId === productId)
+    : liveReviews.filter(r => r.product === productName);
   renderReviewsList(filtered, 'reviews-full-list', false);
+  // Show context in subtitle
+  const sub = document.getElementById('page-subtitle');
+  if (sub && productName) sub.textContent = `Отзывы на «${productName}» — ${filtered.length}`;
 }
 
-// ── QR Generator ─────────────────────────────────────────
-let qrItems = [];
+// ── Add / Delete products ────────────────────────────────
+async function addProduct() {
+  const nameEl = document.getElementById('new-product-name');
+  const imgEl  = document.getElementById('new-product-image');
+  const name   = nameEl.value.trim();
+  const image  = imgEl.value.trim();
+  if (!name) { showToast?.('Введите название', 'error'); return; }
+  try {
+    const res = await fetch(`/admin/products?key=${adminKey()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, image_url: image || null }),
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Не удалось добавить');
+    nameEl.value = ''; imgEl.value = '';
+    showToast?.('Товар добавлен', 'success');
+    await fetchProducts();
+    renderProductsGrid();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function deleteProduct(id, name) {
+  if (!confirm(`Удалить «${name}»?\nЕго отзывы останутся, но потеряют связь с товаром.`)) return;
+  try {
+    const res = await fetch(`/admin/products/${id}?key=${adminKey()}`, { method: 'DELETE' });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Не удалось удалить');
+    showToast?.('Товар удалён', 'success');
+    await fetchProducts();
+    renderProductsGrid();
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+// Tiny toast helper
+function showToast(msg, kind = 'info') {
+  const c = document.getElementById('toast-container');
+  if (!c) return;
+  const colors = { success: 'var(--score-green)', error: 'var(--score-red)', info: 'var(--accent)' };
+  const t = document.createElement('div');
+  t.style.cssText = `background:var(--surface);border:1px solid ${colors[kind]};color:var(--text);padding:10px 16px;border-radius:12px;margin-top:8px;box-shadow:var(--shadow);font-size:13px;font-weight:600;animation:toastIn .3s ease forwards`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.animation = 'toastOut .3s ease forwards'; setTimeout(() => t.remove(), 300); }, 2200);
+}
+
+// ── QR Generator (product picker → IDs in URL) ───────────
+let qrSelectedIds = new Set();
 let qrCurrentUrl = '';
 
-function qrAddItem(val = '') {
-  const id = Date.now() + Math.random();
-  qrItems.push({ id, val });
-  qrRenderItems();
-  const inputs = document.querySelectorAll('.qr-item-input');
-  inputs[inputs.length - 1]?.focus();
+function qrRenderProductPicker() {
+  const wrap = document.getElementById('qr-product-picker');
+  if (!wrap) return;
+  if (!liveProducts.length) {
+    wrap.innerHTML = `<div class="text-sm" style="color:var(--text-tertiary);padding:16px;text-align:center;background:var(--cream);border-radius:12px">Нет товаров. Добавьте в разделе «Товары»</div>`;
+    return;
+  }
+  wrap.innerHTML = liveProducts.map(p => {
+    const checked = qrSelectedIds.has(p.id);
+    const img = p.image_url || `https://placehold.co/80x80/333/fff?text=${encodeURIComponent(p.name.slice(0,2))}`;
+    return `
+      <label class="flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-all" style="background:${checked ? 'var(--accent-light)' : 'var(--cream)'};border:1px solid ${checked ? 'var(--accent)' : 'var(--border)'}">
+        <input type="checkbox" data-product-id="${p.id}" ${checked ? 'checked' : ''} onchange="qrToggleProduct('${p.id}')" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">
+        <img src="${img}" alt="" style="width:36px;height:36px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold truncate" style="color:var(--text)">${p.name}</div>
+          <div class="text-xs font-mono truncate" style="color:var(--text-tertiary)">${p.id.slice(0, 8)}…</div>
+        </div>
+        <span class="text-xs" style="color:var(--text-tertiary)">${p.reviews} отз.</span>
+      </label>
+    `;
+  }).join('');
 }
 
-function qrRemoveItem(id) {
-  qrItems = qrItems.filter(i => i.id !== id);
-  qrRenderItems();
-}
-
-function qrSyncItem(id, val) {
-  const item = qrItems.find(i => i.id === id);
-  if (item) item.val = val;
-}
-
-function qrRenderItems() {
-  const list = document.getElementById('qr-items-list');
-  if (!list) return;
-  list.innerHTML = qrItems.map((item, idx) => `
-    <div class="flex items-center gap-2">
-      <div class="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-           style="background:var(--accent-light);color:var(--accent)">${idx + 1}</div>
-      <input class="qr-item-input flex-1 h-10 rounded-xl px-3 text-sm font-medium outline-none"
-        style="background:var(--input-bg);border:1px solid var(--border);color:var(--text);font-family:inherit"
-        type="text" placeholder="Название товара"
-        value="${item.val.replace(/"/g,'&quot;')}"
-        oninput="qrSyncItem(${item.id}, this.value)"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();qrAddItem()}">
-      ${qrItems.length > 1 ? `<button onclick="qrRemoveItem(${item.id})"
-        class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
-        style="background:transparent;border:none;cursor:pointer;color:var(--text-tertiary)"
-        onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-tertiary)'">✕</button>` : '<div class="w-7"></div>'}
-    </div>
-  `).join('');
+function qrToggleProduct(id) {
+  if (qrSelectedIds.has(id)) qrSelectedIds.delete(id);
+  else qrSelectedIds.add(id);
+  qrRenderProductPicker();
 }
 
 function qrGenerate() {
-  const shop  = (document.getElementById('qr-shop')?.value || '').trim();
-  const names = qrItems.map(i => i.val.trim()).filter(Boolean);
-  if (!names.length) { showToast('Добавьте хотя бы один товар', 'error'); return; }
+  const shop = (document.getElementById('qr-shop')?.value || '').trim();
+  const ids  = [...qrSelectedIds];
+  if (!ids.length) { showToast('Выберите хотя бы один товар', 'error'); return; }
 
   const base   = location.origin;
   const params = new URLSearchParams();
   if (shop) params.set('shop', shop);
-  params.set('items', names.join(','));
+  params.set('ids', ids.join(','));
   qrCurrentUrl = `${base}/?${params.toString()}`;
 
   const wrap = document.getElementById('qr-canvas-wrap');
@@ -376,7 +475,7 @@ function qrCopy() {
 let qrInited = false;
 
 // ── Init ──────────────────────────────────────────────────
-fetchReviews().then(() => {
+Promise.all([fetchReviews(), fetchProducts()]).then(() => {
   initDashboard();
   switchSection('dashboard');
 });

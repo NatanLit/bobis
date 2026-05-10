@@ -25,14 +25,8 @@
 
   <!-- Sidebar -->
   <aside class="sidebar fixed top-0 left-0 bottom-0 w-[260px] z-40 flex flex-col">
-    <div class="p-6 pb-4">
-      <div class="flex items-center gap-3 mb-1">
-        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:var(--accent)">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-          </svg>
-        </div>
-      </div>
+    <div class="px-6 pt-6 pb-2">
+      <div class="text-base font-extrabold tracking-tight" style="color:var(--text)">Bobis Admin</div>
     </div>
 
     <nav class="flex-1 px-4 space-y-1">
@@ -66,8 +60,11 @@
   <div class="main-content" style="margin-left:260px">
     <!-- Top bar -->
     <header class="top-bar sticky top-0 z-30">
-      <div class="px-8 py-4 flex items-center justify-between min-h-[64px]">
-        <div>
+      <div class="px-8 py-4 flex items-center gap-4 min-h-[64px]">
+        <button id="back-btn" onclick="goBack()" class="hidden items-center justify-center rounded-xl transition-all" style="width:38px;height:38px;background:var(--surface);border:1px solid var(--border);color:var(--text)" title="Назад">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="flex-1">
           <h2 class="text-xl font-bold" style="color:var(--text)" id="page-title"></h2>
           <p class="text-sm" style="color:var(--text-tertiary)" id="page-subtitle"></p>
         </div>
@@ -133,7 +130,27 @@
       </div>
 
       <!-- PRODUCTS SECTION -->
-      <div id="section-products" class="section-content px-8 py-6" style="display:none">
+      <div id="section-products" class="section-content px-8 py-6 space-y-6" style="display:none">
+        <!-- Add product form -->
+        <div class="dash-card p-5 animate-fade-up">
+          <h3 class="text-sm font-bold uppercase tracking-wider mb-4" style="color:var(--text-tertiary)">Добавить товар</h3>
+          <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-3">
+            <input id="new-product-name" type="text" placeholder="Название (например: Капучино)"
+              class="h-11 rounded-xl px-4 text-sm font-medium outline-none transition-all"
+              style="background:var(--cream);border:1px solid var(--border);color:var(--text);font-family:inherit">
+            <input id="new-product-image" type="text" placeholder="URL картинки (https://...)"
+              class="h-11 rounded-xl px-4 text-sm font-medium outline-none transition-all"
+              style="background:var(--cream);border:1px solid var(--border);color:var(--text);font-family:inherit">
+            <button onclick="addProduct()"
+              class="h-11 px-5 rounded-xl text-sm font-bold transition-all"
+              style="background:var(--accent);color:#fff;border:none;font-family:inherit;cursor:pointer;box-shadow:0 4px 12px var(--accent-glow)">
+              Добавить
+            </button>
+          </div>
+          <p class="text-xs mt-2" style="color:var(--text-tertiary)">У каждого товара будет свой ID для трекинга отзывов</p>
+        </div>
+
+        <!-- Products grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="products-grid"></div>
       </div>
       <!-- QR SECTION -->
@@ -148,19 +165,13 @@
               <label class="block text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--text-tertiary)">ID магазина / точки</label>
               <input id="qr-shop" type="text" placeholder="например: shop1"
                 class="w-full h-11 rounded-xl px-4 text-sm font-medium outline-none transition-all"
-                style="background:var(--input-bg);border:1px solid var(--border);color:var(--text);font-family:inherit">
+                style="background:var(--cream);border:1px solid var(--border);color:var(--text);font-family:inherit">
             </div>
 
             <div class="mb-3">
-              <label class="block text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--text-tertiary)">Товары в заказе</label>
-              <div id="qr-items-list" class="space-y-2 mb-2"></div>
-              <button onclick="qrAddItem()"
-                class="w-full h-10 rounded-xl text-sm font-semibold transition-all"
-                style="border:1.5px dashed var(--border);background:transparent;color:var(--text-tertiary);font-family:inherit;cursor:pointer"
-                onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
-                onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-tertiary)'">
-                + Добавить товар
-              </button>
+              <label class="block text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--text-tertiary)">Выберите товары в заказе</label>
+              <div id="qr-product-picker" class="space-y-2 max-h-[340px] overflow-y-auto pr-1"></div>
+              <p class="text-xs mt-2" style="color:var(--text-tertiary)">Если нужного товара нет — добавьте его в разделе «Товары»</p>
             </div>
 
             <button onclick="qrGenerate()"
