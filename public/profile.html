@@ -719,63 +719,92 @@
       });
     }
 
-    // ── Load real data via backend ───────────────────────────
+    // ── Cache helpers ────────────────────────────────────────
+    const CACHE_KEY = 'profile_cache_v1';
+    function loadCache() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return null;
+        const c = JSON.parse(raw);
+        if (Date.now() - (c.savedAt || 0) > 7*24*3600*1000) return null; // 7d ttl
+        return c;
+      } catch { return null; }
+    }
+    function saveCache(data) {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, savedAt: Date.now() })); } catch {}
+    }
+    function applyServerData(data) {
+      points    = data.points || 0;
+      history   = data.history || [];
+      purchases = data.purchases || [];
+    }
+
+    // Map raw /user/me payload → ui-shaped data
+    function shapeServerData(d) {
+      return {
+        points: d.points || 0,
+        history: (d.history || []).map(h => ({
+          type:   'plus',
+          label:  h.item ? `Отзыв: ${h.item}` : 'За отзыв',
+          amount: h.amount,
+          date:   new Date(h.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
+        })),
+        purchases: Object.values((d.reviews || []).reduce((acc, r) => {
+          const date = new Date(r.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
+          acc[date] ||= { date, shop: 'Визит', items: [], pts: 0 };
+          acc[date].items.push({ name: r.item, price: '★'.repeat(r.stars) });
+          acc[date].pts += r.points_earned || 0;
+          return acc;
+        }, {})),
+      };
+    }
+
+    // ── Load: render cache instantly, refresh from server in background ──
     async function init() {
       const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Auth check
+      // Auth check (fast — local session)
       const { data: { session } } = await sb.auth.getSession();
       if (!session) { location.href = '/login.html?next=/profile.html'; return; }
-
       const token = session.access_token;
 
-      // Load user name from profiles table
-      const { data: profile } = await sb.from('profiles')
-        .select('first_name, last_name')
-        .eq('id', session.user.id).single();
-      if (profile) {
-        userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-        localStorage.setItem('user_name', userName);
+      // Step 1: paint cached data immediately (no server wait)
+      const cached = loadCache();
+      if (cached) {
+        applyServerData(cached);
+        renderAll();
       }
 
-      // Load points + history + reviews from backend (uses service key, bypasses RLS)
+      // Step 2: refresh from server in background, re-render when fresh data arrives
       try {
         const res  = await fetch('/user/me', { headers: { 'Authorization': 'Bearer ' + token } });
         const json = await res.json();
-        console.log('[profile] /user/me response:', json);
-
         if (json.success) {
-          points = json.data.points || 0;
-
-          history = (json.data.history || []).map(h => ({
-            type:   'plus',
-            label:  h.item ? `Отзыв: ${h.item}` : 'За отзыв',
-            amount: h.amount,
-            date:   new Date(h.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }),
-          }));
-
-          const grouped = {};
-          (json.data.reviews || []).forEach(r => {
-            const date = new Date(r.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' });
-            if (!grouped[date]) grouped[date] = { date, shop: 'Визит', items: [], pts: 0 };
-            grouped[date].items.push({ name: r.item, price: '★'.repeat(r.stars) });
-            grouped[date].pts += r.points_earned || 0;
-          });
-          purchases = Object.values(grouped);
+          const shaped = shapeServerData(json.data);
+          applyServerData(shaped);
+          saveCache(shaped);
+          renderAll();
         } else {
           console.error('[profile] /user/me failed:', json);
-          alert('Ошибка загрузки данных профиля: ' + (json.error || 'unknown') + (json.detail ? ' — ' + json.detail : ''));
         }
       } catch (e) {
         console.error('[profile] fetch error:', e);
       }
 
-      renderAll();
+      // Load user name from profiles in parallel (non-blocking)
+      sb.from('profiles').select('first_name, last_name').eq('id', session.user.id).single()
+        .then(({ data }) => {
+          if (data) {
+            userName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+            localStorage.setItem('user_name', userName);
+          }
+        });
 
       // Logout handler
       window.logout = async () => {
         await sb.auth.signOut();
         localStorage.removeItem('user_name');
+        localStorage.removeItem(CACHE_KEY);
         location.href = '/login.html';
       };
     }

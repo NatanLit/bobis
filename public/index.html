@@ -473,6 +473,23 @@
     );
     let _userEmail = null;
     let _authToken = null;
+
+    function paintHeaderPoints(pts) {
+      if (pts > 0) {
+        const btn = document.getElementById('profile-btn');
+        btn.innerHTML = `
+          <div class="profile-btn-num">${pts > 999 ? '999+' : pts}</div>
+          <div class="profile-btn-sub">pts</div>
+        `;
+      }
+    }
+
+    // Instant paint from cache while we wait for the server
+    try {
+      const cached = JSON.parse(localStorage.getItem('profile_cache_v1') || 'null');
+      if (cached?.points) paintHeaderPoints(cached.points);
+    } catch {}
+
     (async () => {
       const { data: { session } } = await _sb.auth.getSession();
       if (!session) {
@@ -483,17 +500,17 @@
       _userEmail = session.user.email;
       _authToken = session.access_token;
 
-      // Load user's points via backend (uses users table, bypasses RLS)
+      // Refresh in background — doesn't block UI
       try {
         const res = await fetch('/user/me', { headers: { 'Authorization': 'Bearer ' + _authToken } });
         const json = await res.json();
-        const pts = json.data?.points || 0;
-        if (pts > 0) {
-          const btn = document.getElementById('profile-btn');
-          btn.innerHTML = `
-            <div class="profile-btn-num">${pts > 999 ? '999+' : pts}</div>
-            <div class="profile-btn-sub">pts</div>
-          `;
+        if (json.success) {
+          paintHeaderPoints(json.data.points || 0);
+          // Update cache so /profile.html paints fresh data instantly next time
+          try {
+            const prev = JSON.parse(localStorage.getItem('profile_cache_v1') || '{}');
+            localStorage.setItem('profile_cache_v1', JSON.stringify({ ...prev, points: json.data.points || 0, savedAt: Date.now() }));
+          } catch {}
         }
       } catch (e) { /* non-critical */ }
     })();
